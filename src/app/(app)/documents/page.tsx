@@ -36,7 +36,7 @@ export default async function DocumentsPage({ searchParams }: { searchParams: Pr
       <div className="space-y-6">
         <Card>
           <CardHeader title="Folder" actions={
-            <form className="flex items-center gap-2 text-sm">
+            <form className="flex flex-wrap items-center gap-2 text-sm">
               {employee && <input type="hidden" name="employee" value={employee} />}
               <label htmlFor="cat" className="sr-only">Category</label>
               <select id="cat" name="category" defaultValue={category ?? ""} className="rounded-md border border-slate-300 px-2 py-1">

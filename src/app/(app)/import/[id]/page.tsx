@@ -5,7 +5,7 @@ import { requireCtx } from "@/lib/auth/session";
 import { isUuid } from "@/lib/data/requests";
 import { EMPLOYEE_IMPORT_FIELDS } from "@/lib/import/fields";
 import { Alert, Badge, Card, CardBody, CardHeader, NoAccess, PageHeader, Stat } from "@/components/ui/primitives";
-import { LinkButton } from "@/components/ui/button";
+import { FileLinkButton } from "@/components/ui/button";
 import { Table, TBody, Td, THead, Th } from "@/components/ui/table";
 import { ActionForm, InlineAction, SubmitButton } from "@/components/ui/action-form";
 import { FormGrid, SelectField } from "@/components/ui/form";
@@ -62,7 +62,7 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
           <>
             <Card>
               <CardHeader title="3. Problems found" description="Rows with problems are never imported. Fix the spreadsheet and upload it again, or confirm to import only the ready rows."
-                actions={errors.length > 0 && <LinkButton href={`/import/${id}/errors`} variant="secondary">Download error report (CSV)</LinkButton>} />
+                actions={errors.length > 0 && <FileLinkButton href={`/import/${id}/errors`} variant="secondary">Download error report (CSV)</FileLinkButton>} />
               {errors.length === 0 ? <CardBody><Alert tone="success">No problems found.</Alert></CardBody> : (
                 <Table caption="Rows with problems">
                   <THead><Th>Row</Th><Th>Name in file</Th><Th>Problems</Th></THead>
@@ -118,7 +118,7 @@ export default async function ImportBatchPage({ params }: { params: Promise<{ id
                   <ul className="list-disc pl-4">{failed.map((r) => <li key={r.id}>Row {r.row_no}: {r.result}</li>)}</ul>
                 </Alert>
               )}
-              {errors.length > 0 && <LinkButton href={`/import/${id}/errors`} variant="secondary">Download error report (CSV)</LinkButton>}
+              {errors.length > 0 && <FileLinkButton href={`/import/${id}/errors`} variant="secondary">Download error report (CSV)</FileLinkButton>}
             </CardBody>
           </Card>
         )}

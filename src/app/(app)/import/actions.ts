@@ -78,7 +78,7 @@ export async function mapAndValidate(_prev: ActionState, formData: FormData): Pr
   const ctx = await requireActionCtx();
   if (!ctx.can("import.run")) return { ok: false, error: "You don't have permission to run imports." };
   const raw = formObject(formData);
-  const id = z.uuid().safeParse(raw.batch_id);
+  const id = z.guid().safeParse(raw.batch_id);
   if (!id.success) return { ok: false, error: "Import not found." };
 
   const mapping: Record<string, string> = {};
@@ -115,7 +115,7 @@ export async function mapAndValidate(_prev: ActionState, formData: FormData): Pr
 
 export async function confirmImport(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).batch_id);
+  const id = z.guid().safeParse(formObject(formData).batch_id);
   if (!id.success) return { ok: false, error: "Import not found." };
   const { data, error } = await ctx.db.rpc("commit_employee_import", { p_batch: id.data });
   if (error) return fail(error, "import-commit");
@@ -127,7 +127,7 @@ export async function confirmImport(_prev: ActionState, formData: FormData): Pro
 
 export async function cancelImport(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).batch_id);
+  const id = z.guid().safeParse(formObject(formData).batch_id);
   if (!id.success) return;
   await ctx.db.from("import_batches").update({ status: "cancelled" }).eq("id", id.data).neq("status", "committed");
   revalidatePath("/import");

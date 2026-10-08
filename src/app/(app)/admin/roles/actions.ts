@@ -10,7 +10,7 @@ import { fail, type ActionState } from "@/lib/errors";
 export async function saveRole(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const id = raw.role_id ? z.uuid().safeParse(raw.role_id) : null;
+  const id = raw.role_id ? z.guid().safeParse(raw.role_id) : null;
   if (raw.role_id && !id?.success) return { ok: false, error: "Role not found." };
   if (!raw.name?.trim()) return { ok: false, error: "Enter a role name.", fieldErrors: { name: "A name is required." } };
   const perms = formData.getAll("permissions").filter((v): v is string => typeof v === "string");

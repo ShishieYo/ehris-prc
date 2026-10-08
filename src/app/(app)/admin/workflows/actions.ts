@@ -23,7 +23,7 @@ export async function saveStep(_prev: ActionState, formData: FormData): Promise<
   const parsed = stepSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error.issues) };
   const row = { ...parsed.data, required_permission: parsed.data.actor_kind === "supervisor" ? null : parsed.data.required_permission };
-  const id = raw.step_id ? z.uuid().safeParse(raw.step_id) : null;
+  const id = raw.step_id ? z.guid().safeParse(raw.step_id) : null;
   const { error } = id?.success ? await ctx.db.from("workflow_steps").update(row).eq("id", id.data) : await ctx.db.from("workflow_steps").insert(row);
   if (error) return fail(error, "save-step");
   revalidatePath("/admin/workflows");
@@ -32,7 +32,7 @@ export async function saveStep(_prev: ActionState, formData: FormData): Promise<
 
 export async function deleteStep(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).step_id);
+  const id = z.guid().safeParse(formObject(formData).step_id);
   if (!id.success) return;
   await ctx.db.from("workflow_steps").delete().eq("id", id.data);
   revalidatePath("/admin/workflows");

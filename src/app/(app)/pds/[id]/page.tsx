@@ -5,7 +5,7 @@ import { getPds, pdsState } from "@/lib/data/pds";
 import { PDS_SECTIONS } from "@/lib/pds/sections";
 import { logEvent } from "@/lib/audit";
 import { Alert, Badge, Card, CardBody, CardHeader, DefList, NoAccess, PageHeader } from "@/components/ui/primitives";
-import { LinkButton } from "@/components/ui/button";
+import { FileLinkButton } from "@/components/ui/button";
 import { ActionForm, SubmitButton } from "@/components/ui/action-form";
 import { CheckboxField, SelectField, TextField } from "@/components/ui/form";
 import { PdsSectionCard } from "@/components/pds/section-card";
@@ -38,7 +38,7 @@ export default async function PdsPage({ params, searchParams }: { params: Promis
       <PageHeader
         title={isSelf ? "My Personal Data Sheet" : `PDS — ${name}`}
         description={<><Badge tone={state.tone}>{state.label}</Badge> <span className="ml-1">Structured electronic PDS. Sections are stored as separate records, not one document.</span></>}
-        actions={<><PrintButton /><LinkButton href={`/pds/${id}/pdf`} variant="secondary">Generate PDF</LinkButton></>}
+        actions={<><PrintButton /><FileLinkButton href={`/pds/${id}/pdf`} variant="secondary">Generate PDF</FileLinkButton></>}
       />
       <div className="space-y-6">
         {latest?.kind === "returned" && <Alert tone="warning" title="HR returned this PDS for correction">{latest.remarks}</Alert>}

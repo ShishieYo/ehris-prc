@@ -2,6 +2,11 @@ import type { ReactNode } from "react";
 import { BrandMark } from "@/components/brand";
 import { isDemoMode } from "@/lib/env";
 
+// These pages must be rendered per request: the Content-Security-Policy nonce is
+// generated per request (see src/proxy.ts) and cannot be applied to static HTML,
+// and the demo banner depends on runtime configuration.
+export const dynamic = "force-dynamic";
+
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-brand-900 to-brand-700">

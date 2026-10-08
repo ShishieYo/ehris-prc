@@ -21,14 +21,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <>
-      <Tabs
+      {available.length > 1 && <Tabs
         active={active}
         items={[
           { key: "me", label: "My dashboard", href: "/dashboard?view=me", hidden: !hasSelf },
           { key: "hr", label: "HR overview", href: "/dashboard?view=hr", hidden: !hasHr },
           { key: "management", label: "Management", href: "/dashboard?view=management", hidden: !hasExec },
         ]}
-      />
+      />}
       {active === "me" && <EmployeeView ctx={ctx} employeeId={ctx.employeeId!} />}
       {active === "hr" && <HrView ctx={ctx} />}
       {active === "management" && <ExecView ctx={ctx} />}

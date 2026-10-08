@@ -80,7 +80,7 @@ export default async function AttendancePage({ searchParams }: { searchParams: P
                   <Td>{fmtTime(rec?.time_out)}</Td>
                   <Td>{rec ? `${rec.break_minutes} min` : "—"}</Td>
                   <Td>{fmtDuration(rec?.total_minutes)}</Td>
-                  <Td>{rec ? <AttendanceBadge code={rec.status_code} name={statusName(rec.status_code)} /> : holiday.has(date) ? <AttendanceBadge code="HOLIDAY" name={`Holiday: ${holiday.get(date)}`} /> : <span className="text-slate-400">No log</span>}</Td>
+                  <Td>{rec ? <AttendanceBadge code={rec.status_code} name={statusName(rec.status_code)} /> : holiday.has(date) ? <AttendanceBadge code="HOLIDAY" name={`Holiday: ${holiday.get(date)}`} /> : <span className="text-slate-500">No log</span>}</Td>
                   <Td className="text-xs text-slate-600">{rec?.remarks ?? ""}</Td>
                   {isSelf && <Td>{needsFix && <Link className="text-brand-700 underline" href={`/attendance/corrections/new?date=${date}&type=${rec?.status_code === "MISSING_LOG" && !rec.time_out ? "missing_time_out" : !rec ? "absent_but_present" : "incorrect_time"}`}>Request correction</Link>}</Td>}
                 </tr>

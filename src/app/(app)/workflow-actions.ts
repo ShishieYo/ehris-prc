@@ -25,7 +25,7 @@ export async function submitRequest(_prev: ActionState, formData: FormData): Pro
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
   const type = entity.safeParse(raw.entity_type);
-  const id = z.uuid().safeParse(raw.entity_id);
+  const id = z.guid().safeParse(raw.entity_id);
   if (!type.success || !id.success) return { ok: false, error: "Request not found." };
   const { error } = await ctx.db.rpc("wf_submit", { p_type: type.data, p_id: id.data });
   if (error) return fail(error, "wf-submit");
@@ -38,7 +38,7 @@ export async function actOnRequest(_prev: ActionState, formData: FormData): Prom
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
   const type = entity.safeParse(raw.entity_type);
-  const id = z.uuid().safeParse(raw.entity_id);
+  const id = z.guid().safeParse(raw.entity_id);
   const action = z.enum(["approve", "reject", "return", "cancel"]).safeParse(raw.action);
   if (!type.success || !id.success || !action.success) return { ok: false, error: "Invalid request." };
   const { error } = await ctx.db.rpc("wf_act", { p_type: type.data, p_id: id.data, p_action: action.data, p_remarks: (raw.remarks ?? "").trim() || null });
@@ -52,7 +52,7 @@ export async function commentOnRequest(_prev: ActionState, formData: FormData): 
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
   const type = entity.safeParse(raw.entity_type);
-  const id = z.uuid().safeParse(raw.entity_id);
+  const id = z.guid().safeParse(raw.entity_id);
   if (!type.success || !id.success) return { ok: false, error: "Invalid request." };
   const { error } = await ctx.db.rpc("wf_comment", { p_type: type.data, p_id: id.data, p_remarks: (raw.remarks ?? "").trim() });
   if (error) return fail(error, "wf-comment");

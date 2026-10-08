@@ -40,7 +40,8 @@ export async function getMyDashboard(ctx: Ctx, employeeId: string) {
   const year = Number(today.slice(0, 4));
   const monthStart = `${today.slice(0, 7)}-01`;
   const open = ["in_review", "approved"];
-  const [directory, completion, todayRec, balances, missing, leave, corr, req, notes, nLeave, nCorr, nReq] = await Promise.all([
+  const soon = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+  const [directory, completion, todayRec, balances, missing, leave, corr, req, notes, nLeave, nCorr, nReq, expiring] = await Promise.all([
     ctx.db.from("employee_directory").select("*").eq("id", employeeId).maybeSingle(),
     ctx.db.rpc("profile_completion", { p_employee: employeeId }),
     ctx.db.from("attendance_records").select("*").eq("employee_id", employeeId).eq("work_date", today).maybeSingle(),
@@ -53,8 +54,9 @@ export async function getMyDashboard(ctx: Ctx, employeeId: string) {
     ctx.db.from("leave_applications").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).in("status", open),
     ctx.db.from("attendance_corrections").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).in("status", open),
     ctx.db.from("hr_requests").select("id", { count: "exact", head: true }).eq("employee_id", employeeId).in("status", open),
+    ctx.db.from("documents").select("id, title, expires_on").eq("employee_id", employeeId).is("deleted_at", null).not("expires_on", "is", null).lte("expires_on", soon).order("expires_on"),
   ]);
-  for (const r of [directory, completion, todayRec, balances, missing, leave, corr, req, notes, nLeave, nCorr, nReq]) if (r.error) throw r.error;
+  for (const r of [directory, completion, todayRec, balances, missing, leave, corr, req, notes, nLeave, nCorr, nReq, expiring]) if (r.error) throw r.error;
   return {
     directory: directory.data,
     completion: completion.data as unknown as { percent: number; items: { label: string; done: boolean }[] },
@@ -65,6 +67,7 @@ export async function getMyDashboard(ctx: Ctx, employeeId: string) {
     corrections: corr.data ?? [],
     requests: req.data ?? [],
     notifications: notes.data ?? [],
+    expiringDocuments: expiring.data ?? [],
     pendingCount: (nLeave.count ?? 0) + (nCorr.count ?? 0) + (nReq.count ?? 0),
   };
 }

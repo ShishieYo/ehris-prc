@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { requireCtx } from "@/lib/auth/session";
 import { AUDIT_PAGE, auditQuery, type AuditFilters } from "@/lib/data/audit";
 import { Card, CardBody, EmptyState, NoAccess, PageHeader } from "@/components/ui/primitives";
-import { Button, LinkButton } from "@/components/ui/button";
+import { Button, FileLinkButton } from "@/components/ui/button";
 import { Table, TBody, Td, THead, Th } from "@/components/ui/table";
 import { Pagination } from "@/components/ui/tabs";
 import { SelectField, TextField } from "@/components/ui/form";
@@ -24,7 +24,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   return (
     <>
       <PageHeader title="Audit logs" description="Immutable record of sign-ins, record changes, views, downloads, approvals and administration. Sensitive identifiers are masked."
-        actions={<LinkButton href={`/audit/export?${qs}`} variant="secondary">Export CSV</LinkButton>} />
+        actions={<FileLinkButton href={`/audit/export?${qs}`} variant="secondary">Export CSV</FileLinkButton>} />
       <Card className="mb-4">
         <CardBody>
           <form className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6" aria-label="Filter audit log">

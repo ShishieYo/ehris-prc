@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireCtx } from "@/lib/auth/session";
 import { getEmployee } from "@/lib/data/employees";
 import { getLookups } from "@/lib/data/lookups";
+import { listDocuments } from "@/lib/data/documents";
 import { Alert, Badge, Card, CardBody, CardHeader, EmptyState, NoAccess, PageHeader } from "@/components/ui/primitives";
 import { LinkButton } from "@/components/ui/button";
 import { Table, TBody, Td, THead, Th } from "@/components/ui/table";
@@ -21,10 +22,11 @@ export default async function ServiceRecordPage({ params, searchParams }: { para
   const isSelf = ctx.employeeId === id;
   if (!isSelf && !ctx.can("service_record.read_all")) return <NoAccess />;
 
-  const [employee, lookups, { data: rows, error }] = await Promise.all([
+  const [employee, lookups, { data: rows, error }, docs] = await Promise.all([
     getEmployee(ctx, id),
     getLookups(ctx),
     ctx.db.from("service_records").select("*").eq("employee_id", id).order("date_from", { ascending: false }),
+    ctx.can("document.read_all") || isSelf ? listDocuments(ctx, id) : Promise.resolve([]),
   ]);
   if (error) throw error;
   const records = rows ?? [];
@@ -70,7 +72,7 @@ export default async function ServiceRecordPage({ params, searchParams }: { para
           {records.length === 0 ? <EmptyState title="No service record entries yet" /> : (
             <Table caption="Service record entries">
               <THead>
-                <Th>From</Th><Th>To</Th><Th>Position</Th><Th>Status</Th><Th>Office / station</Th><Th>Salary</Th><Th>SG-Step</Th><Th>LWOP</Th><Th>Movement / remarks</Th>
+                <Th>From</Th><Th>To</Th><Th>Position</Th><Th>Status</Th><Th>Office / station</Th><Th>Salary</Th><Th>SG-Step</Th><Th>LWOP</Th><Th>Movement / remarks</Th><Th>Supporting document</Th>
                 {canWrite && <Th><span className="sr-only">Actions</span></Th>}
               </THead>
               <TBody>
@@ -85,6 +87,7 @@ export default async function ServiceRecordPage({ params, searchParams }: { para
                     <Td>{r.salary_grade ? `${r.salary_grade}${r.salary_step ? `-${r.salary_step}` : ""}` : "—"}</Td>
                     <Td>{r.lwop_days || "—"}</Td>
                     <Td>{titleCase(r.record_type)}{r.separation_cause ? ` — ${r.separation_cause}` : ""}{r.remarks && <div className="text-xs text-slate-500">{r.remarks}</div>}</Td>
+                    <Td>{r.document_id ? <Link className="text-brand-700 underline" href={`/documents/${r.document_id}`}>{docs.find((d) => d.id === r.document_id)?.title ?? "Open"}</Link> : "—"}</Td>
                     {canWrite && (
                       <Td className="whitespace-nowrap">
                         <Link className="text-brand-700 underline" href={`/service-record/${id}?edit=${r.id}#form`}>Edit</Link>{" · "}
@@ -120,8 +123,9 @@ export default async function ServiceRecordPage({ params, searchParams }: { para
                   <TextField label="Leave without pay (days)" name="lwop_days" type="number" min={0} defaultValue={editing?.lwop_days ?? 0} />
                   <TextField label="Separation cause" name="separation_cause" defaultValue={editing?.separation_cause ?? ""} />
                   <TextField label="Remarks" name="remarks" defaultValue={editing?.remarks ?? ""} />
+                  <SelectField label="Supporting document" name="document_id" placeholder="— none —" defaultValue={editing?.document_id ?? ""} options={docs.filter((d) => !d.deleted_at).map((d) => ({ value: d.id, label: `${d.doc_no} — ${d.title}` }))} hint="From the employee's folder (e.g. appointment papers)." />
                 </FormGrid>
-                <p className="text-xs text-slate-500">Attach supporting documents (appointment papers, etc.) in the employee&apos;s <Link className="underline" href={`/documents?employee=${id}`}>Documents</Link>.</p>
+                <p className="text-xs text-slate-500">Upload supporting documents (appointment papers, etc.) in the employee&apos;s <Link className="underline" href={`/documents?employee=${id}`}>Documents</Link> first, then link them here.</p>
                 <div className="flex gap-2">
                   <SubmitButton>{editing ? "Save entry" : "Add entry"}</SubmitButton>
                   {editing && <Link href={`/service-record/${id}`} className="rounded-md border border-slate-300 px-4 py-2 text-sm">Cancel</Link>}

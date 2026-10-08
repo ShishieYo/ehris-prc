@@ -36,7 +36,7 @@ export default async function ProfilePage() {
             <ul className="mt-4 grid gap-1 sm:grid-cols-2">
               {completion.items.map((i) => (
                 <li key={i.label} className="flex items-center gap-2 text-sm">
-                  <span aria-hidden="true" className={i.done ? "text-emerald-600" : "text-slate-400"}>{i.done ? "✔" : "○"}</span>
+                  <span aria-hidden="true" className={i.done ? "text-emerald-600" : "text-slate-500"}>{i.done ? "✔" : "○"}</span>
                   <span className={i.done ? "text-slate-600" : "font-medium text-slate-900"}>{i.label}</span>
                   <span className="sr-only">{i.done ? "(done)" : "(to do)"}</span>
                 </li>

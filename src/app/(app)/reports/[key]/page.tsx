@@ -5,7 +5,7 @@ import { getLookups } from "@/lib/data/lookups";
 import { availableReports, defaultFilters, reportByKey, type ReportFilters } from "@/lib/reports/definitions";
 import { logEvent } from "@/lib/audit";
 import { Card, CardBody, EmptyState, NoAccess, PageHeader } from "@/components/ui/primitives";
-import { LinkButton } from "@/components/ui/button";
+import { FileLinkButton } from "@/components/ui/button";
 import { Table, TBody, Td, THead, Th } from "@/components/ui/table";
 import { ReportFilterForm } from "@/components/reports/filter-form";
 
@@ -30,9 +30,9 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
       <PageHeader
         title={def.title} description={def.description}
         actions={<>
-          <LinkButton href={`/reports/${key}/export?format=xlsx&${qs}`} variant="secondary">Excel</LinkButton>
-          <LinkButton href={`/reports/${key}/export?format=pdf&${qs}`} variant="secondary">PDF</LinkButton>
-          <LinkButton href={`/reports/${key}/export?format=csv&${qs}`} variant="secondary">CSV</LinkButton>
+          <FileLinkButton href={`/reports/${key}/export?format=xlsx&${qs}`} variant="secondary">Excel</FileLinkButton>
+          <FileLinkButton href={`/reports/${key}/export?format=pdf&${qs}`} variant="secondary">PDF</FileLinkButton>
+          <FileLinkButton href={`/reports/${key}/export?format=csv&${qs}`} variant="secondary">CSV</FileLinkButton>
         </>}
       />
       <Card className="mb-4"><CardBody><ReportFilterForm def={def} filters={filters} lookups={lookups} /></CardBody></Card>

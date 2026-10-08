@@ -89,7 +89,7 @@ begin
         from public.employment_statuses s
         join (select employment_status_code, count(*) n from public.employees where record_status = 'active' group by 1) c
           on c.employment_status_code = s.code), '[]'),
-    'by_division', coalesce((select jsonb_agg(jsonb_build_object('name', coalesce(division_name, 'Unassigned'), 'count', n) order by n desc)
+    'by_division', coalesce((select jsonb_agg(jsonb_build_object('name', coalesce(division_name, 'Not under a division'), 'count', n) order by n desc)
         from (select division_name, count(*) n from public.employee_directory where record_status = 'active' group by 1) x), '[]'),
     'by_position', coalesce((select jsonb_agg(jsonb_build_object('name', coalesce(position_title, 'Unassigned'), 'count', n) order by n desc)
         from (select position_title, count(*) n from public.employee_directory where record_status = 'active'
@@ -126,7 +126,7 @@ begin
   end if;
   select jsonb_build_object(
     'total', (select count(*) from public.employees where record_status = 'active'),
-    'by_division', coalesce((select jsonb_agg(jsonb_build_object('name', coalesce(division_name, 'Unassigned'), 'count', n) order by n desc)
+    'by_division', coalesce((select jsonb_agg(jsonb_build_object('name', coalesce(division_name, 'Not under a division'), 'count', n) order by n desc)
         from (select division_name, count(*) n from public.employee_directory where record_status = 'active' group by 1) x), '[]'),
     'by_status', coalesce((select jsonb_agg(jsonb_build_object('name', s.name, 'count', c.n) order by s.sort_order)
         from public.employment_statuses s

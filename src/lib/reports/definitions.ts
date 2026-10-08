@@ -47,7 +47,7 @@ export const REPORTS: ReportDef[] = [
       const rows = must(await ctx.db.from("employee_directory").select("division_name, record_status").limit(10000));
       const keep = rows.filter((r) => (f.record ?? "active") === "all" || r.record_status === (f.record ?? "active"));
       const counts = new Map<string, number>();
-      for (const r of keep) counts.set(r.division_name ?? "Unassigned", (counts.get(r.division_name ?? "Unassigned") ?? 0) + 1);
+      for (const r of keep) counts.set(r.division_name ?? "Not under a division", (counts.get(r.division_name ?? "Not under a division") ?? 0) + 1);
       const out = [...counts.entries()].sort((a, b) => b[1] - a[1]);
       return { columns: ["Division", "Headcount"], rows: [...out, ["Total", out.reduce((t, [, n]) => t + n, 0)]] };
     },

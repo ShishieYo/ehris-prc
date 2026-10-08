@@ -174,7 +174,7 @@ select e.id, d::date,
        ((d::date + time '07:50') + ((abs(hashtext(e.id::text || d::text)) % 25) || ' minutes')::interval) at time zone 'Asia/Manila',
        case when d::date = current_date then null else (d::date + time '17:05') at time zone 'Asia/Manila' end,
        60,
-       case when abs(hashtext(e.id::text || d::text)) % 25 > 10 then 'LATE' else 'PRESENT' end,
+       case when abs(hashtext(e.id::text || d::text)) % 25 > 20 then 'LATE' else 'PRESENT' end,
        'biometric', 'DEMO DATA'
 from public.employees e
 cross join generate_series(current_date - 30, current_date, interval '1 day') d

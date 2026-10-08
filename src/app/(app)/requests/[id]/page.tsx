@@ -5,7 +5,7 @@ import { getLookups } from "@/lib/data/lookups";
 import { getHrRequest, getRequester } from "@/lib/data/requests";
 import { listDocuments } from "@/lib/data/documents";
 import { Alert, Badge, Card, CardBody, CardHeader, DefList, PageHeader } from "@/components/ui/primitives";
-import { LinkButton } from "@/components/ui/button";
+import { FileLinkButton } from "@/components/ui/button";
 import { RequestStatusBadge } from "@/components/ui/status";
 import { ActionForm, InlineAction, SubmitButton } from "@/components/ui/action-form";
 import { SelectField } from "@/components/ui/form";
@@ -60,7 +60,7 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
               <CardBody className="flex flex-wrap items-center justify-between gap-3">
                 <div><p className="font-medium">{resultDoc.title}</p><p className="text-xs text-slate-500">{resultDoc.doc_no}</p></div>
                 {r.status === "completed" || ctx.can("document.read_all") ? (
-                  <div className="flex gap-2"><LinkButton href={`/documents/${resultDoc.id}/file`} target="_blank" variant="secondary">View</LinkButton><LinkButton href={`/documents/${resultDoc.id}/file?download=1`}>Download</LinkButton></div>
+                  <div className="flex gap-2"><FileLinkButton href={`/documents/${resultDoc.id}/file`} target="_blank" variant="secondary">View</FileLinkButton><FileLinkButton href={`/documents/${resultDoc.id}/file?download=1`}>Download</FileLinkButton></div>
                 ) : <span className="text-sm text-slate-500">Available once released.</span>}
               </CardBody>
             </Card>
@@ -108,7 +108,7 @@ export default async function RequestPage({ params, searchParams }: { params: Pr
             workflowCode={r.workflow_code} currentStep={r.current_step_order} returnTo={`/requests/${r.id}`} attachments={{ enabled: true }} />
         </div>
       </div>
-      <p className="mt-6 text-xs text-slate-400"><Link href="/requests" className="underline">Back to requests</Link></p>
+      <p className="mt-6 text-xs text-slate-500"><Link href="/requests" className="underline">Back to requests</Link></p>
     </>
   );
 }

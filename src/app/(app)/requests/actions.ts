@@ -22,7 +22,7 @@ export async function saveHrRequest(_prev: ActionState, formData: FormData): Pro
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error.issues) };
 
   const row = { ...parsed.data, employee_id: ctx.employeeId };
-  const id = raw.id ? z.uuid().safeParse(raw.id) : null;
+  const id = raw.id ? z.guid().safeParse(raw.id) : null;
   let savedId: string;
   if (id?.success) {
     const { error } = await ctx.db.from("hr_requests").update(row).eq("id", id.data);
@@ -45,7 +45,7 @@ export async function saveHrRequest(_prev: ActionState, formData: FormData): Pro
 
 export async function deleteHrDraft(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).id);
+  const id = z.guid().safeParse(formObject(formData).id);
   if (!id.success) return;
   await ctx.db.from("hr_requests").delete().eq("id", id.data);
   revalidatePath("/requests");
@@ -55,8 +55,8 @@ export async function deleteHrDraft(formData: FormData): Promise<void> {
 export async function assignHrRequest(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const req = z.uuid().safeParse(raw.request_id);
-  const user = z.uuid().safeParse(raw.user_id);
+  const req = z.guid().safeParse(raw.request_id);
+  const user = z.guid().safeParse(raw.user_id);
   if (!req.success || !user.success) return { ok: false, error: "Choose a staff member." };
   const { error } = await ctx.db.rpc("hr_request_assign", { p_request: req.data, p_user: user.data });
   if (error) return fail(error, "assign-request");
@@ -67,8 +67,8 @@ export async function assignHrRequest(_prev: ActionState, formData: FormData): P
 export async function attachResult(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const req = z.uuid().safeParse(raw.request_id);
-  const doc = z.uuid().safeParse(raw.document_id);
+  const req = z.guid().safeParse(raw.request_id);
+  const doc = z.guid().safeParse(raw.document_id);
   if (!req.success || !doc.success) return { ok: false, error: "Choose the generated document." };
   const { error } = await ctx.db.rpc("hr_request_attach_result", { p_request: req.data, p_document: doc.data });
   if (error) return fail(error, "attach-result");

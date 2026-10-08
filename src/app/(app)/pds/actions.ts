@@ -13,7 +13,7 @@ export async function savePdsRow(_prev: ActionState, formData: FormData): Promis
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
   const def = sectionByKey(raw.section ?? "");
-  const employeeId = z.uuid().safeParse(raw.employee_id);
+  const employeeId = z.guid().safeParse(raw.employee_id);
   if (!def || !employeeId.success) return { ok: false, error: "That section could not be found." };
 
   const parsed = schemaFor(def).safeParse(raw);
@@ -24,7 +24,7 @@ export async function savePdsRow(_prev: ActionState, formData: FormData): Promis
     insert: (v: object) => Promise<{ error: unknown }>;
     update: (v: object) => { eq: (c: string, v: string) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } };
   };
-  const rowId = raw.id ? z.uuid().safeParse(raw.id) : null;
+  const rowId = raw.id ? z.guid().safeParse(raw.id) : null;
   const result = rowId?.success
     ? await table.update(parsed.data).eq("id", rowId.data).eq("employee_id", employeeId.data)
     : await table.insert({ ...parsed.data, employee_id: employeeId.data });
@@ -37,8 +37,8 @@ export async function deletePdsRow(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
   const def = sectionByKey(raw.section ?? "");
-  const id = z.uuid().safeParse(raw.id);
-  const employeeId = z.uuid().safeParse(raw.employee_id);
+  const id = z.guid().safeParse(raw.id);
+  const employeeId = z.guid().safeParse(raw.employee_id);
   if (!def || !id.success || !employeeId.success) return;
   const table = ctx.db.from(def.table) as unknown as {
     delete: () => { eq: (c: string, v: string) => { eq: (c: string, v: string) => Promise<{ error: unknown }> } };
@@ -51,7 +51,7 @@ export async function deletePdsRow(formData: FormData): Promise<void> {
 export async function saveDeclaration(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const employeeId = z.uuid().safeParse(raw.employee_id);
+  const employeeId = z.guid().safeParse(raw.employee_id);
   if (!employeeId.success) return { ok: false, error: "Employee not found." };
   const rows = Object.keys(raw)
     .filter((k) => k.startsWith("answer_"))
@@ -80,7 +80,7 @@ export async function certifyPds(_prev: ActionState, formData: FormData): Promis
 export async function reviewPds(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const employeeId = z.uuid().safeParse(raw.employee_id);
+  const employeeId = z.guid().safeParse(raw.employee_id);
   const kind = z.enum(["verified", "returned"]).safeParse(raw.kind);
   if (!employeeId.success || !kind.success) return { ok: false, error: "Invalid request." };
   const { error } = await ctx.db.rpc("pds_review", { p_employee: employeeId.data, p_kind: kind.data, p_remarks: (raw.remarks ?? "").trim() });

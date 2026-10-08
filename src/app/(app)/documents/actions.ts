@@ -19,10 +19,10 @@ const detailsSchema = z.object({
 });
 
 const createSchema = detailsSchema.extend({
-  employee_id: z.uuid(),
+  employee_id: z.guid(),
   category_code: reqText("Category", 40),
   related_type: z.enum(["leave_application", "attendance_correction", "hr_request", ""]).transform((v) => v || null),
-  related_id: z.string().transform((v) => v || null).pipe(z.uuid().nullable()),
+  related_id: z.string().transform((v) => v || null).pipe(z.guid().nullable()),
 });
 
 export async function uploadDocument(_prev: ActionState, formData: FormData): Promise<ActionState> {
@@ -58,8 +58,8 @@ export async function uploadDocument(_prev: ActionState, formData: FormData): Pr
 export async function replaceDocument(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const id = z.uuid().safeParse(raw.document_id);
-  const employeeId = z.uuid().safeParse(raw.employee_id);
+  const id = z.guid().safeParse(raw.document_id);
+  const employeeId = z.guid().safeParse(raw.employee_id);
   const reason = (raw.reason ?? "").trim();
   if (!id.success || !employeeId.success) return { ok: false, error: "Document not found." };
   if (!reason) return { ok: false, error: "Please give a reason for replacing this file.", fieldErrors: { reason: "A reason is required." } };
@@ -81,7 +81,7 @@ export async function replaceDocument(_prev: ActionState, formData: FormData): P
 export async function updateDocumentDetails(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const id = z.uuid().safeParse(raw.document_id);
+  const id = z.guid().safeParse(raw.document_id);
   const parsed = detailsSchema.safeParse(raw);
   if (!id.success) return { ok: false, error: "Document not found." };
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error.issues) };
@@ -97,7 +97,7 @@ export async function updateDocumentDetails(_prev: ActionState, formData: FormDa
 export async function reviewDocument(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const id = z.uuid().safeParse(raw.document_id);
+  const id = z.guid().safeParse(raw.document_id);
   const status = z.enum(["verified", "rejected", "for_review", "archived"]).safeParse(raw.status);
   if (!id.success || !status.success) return { ok: false, error: "Invalid request." };
   const { error } = await ctx.db.rpc("set_document_status", { p_document_id: id.data, p_status: status.data, p_remarks: (raw.remarks ?? "").trim() });
@@ -109,7 +109,7 @@ export async function reviewDocument(_prev: ActionState, formData: FormData): Pr
 export async function deleteDocument(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const id = z.uuid().safeParse(raw.document_id);
+  const id = z.guid().safeParse(raw.document_id);
   if (!id.success) return { ok: false, error: "Document not found." };
   const { error } = await ctx.db.rpc("delete_document", { p_document_id: id.data, p_reason: (raw.reason ?? "").trim() });
   if (error) return fail(error, "delete-document");

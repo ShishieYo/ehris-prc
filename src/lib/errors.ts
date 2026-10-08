@@ -59,7 +59,7 @@ export function toUserMessage(error: DbError | Error | unknown, context = "actio
 /** Result type used by every server action. */
 export type ActionState =
   | { ok: true; message?: string }
-  | { ok: false; error: string; fieldErrors?: Record<string, string> }
+  | { ok: false; error: string; fieldErrors?: Record<string, string>; values?: Record<string, string> }
   | null;
 
 export const fail = (error: unknown, context?: string): ActionState & { ok: false } => ({

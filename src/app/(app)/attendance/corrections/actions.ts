@@ -33,7 +33,7 @@ export async function saveCorrection(_prev: ActionState, formData: FormData): Pr
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error.issues) };
 
-  const id = raw.id ? z.uuid().safeParse(raw.id) : null;
+  const id = raw.id ? z.guid().safeParse(raw.id) : null;
   const row = { ...parsed.data, employee_id: ctx.employeeId };
   let savedId: string;
   if (id?.success) {
@@ -58,7 +58,7 @@ export async function saveCorrection(_prev: ActionState, formData: FormData): Pr
 
 export async function deleteCorrectionDraft(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).id);
+  const id = z.guid().safeParse(formObject(formData).id);
   if (!id.success) return;
   await ctx.db.from("attendance_corrections").delete().eq("id", id.data);
   revalidatePath("/attendance/corrections");

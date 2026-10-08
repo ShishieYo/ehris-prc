@@ -5,7 +5,7 @@ import { getLookups } from "@/lib/data/lookups";
 import { getDocument } from "@/lib/data/documents";
 import { Alert, Card, CardBody, CardHeader, DefList, PageHeader } from "@/components/ui/primitives";
 import { DocumentStatusBadge } from "@/components/ui/status";
-import { LinkButton } from "@/components/ui/button";
+import { FileLinkButton } from "@/components/ui/button";
 import { Table, TBody, Td, THead, Th } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/ui/action-form";
 import { FormGrid, SelectField, TextAreaField, TextField } from "@/components/ui/form";
@@ -31,8 +31,8 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
         title={doc.title}
         description={<>{doc.doc_no} · <DocumentStatusBadge status={doc.status} deleted={deleted} /></>}
         actions={!deleted && <>
-          <LinkButton href={`/documents/${id}/file`} target="_blank" variant="secondary">View</LinkButton>
-          <LinkButton href={`/documents/${id}/file?download=1`} variant="secondary">Download</LinkButton>
+          <FileLinkButton href={`/documents/${id}/file`} target="_blank" variant="secondary">View</FileLinkButton>
+          <FileLinkButton href={`/documents/${id}/file?download=1`} variant="secondary">Download</FileLinkButton>
         </>}
       />
       <div className="space-y-6">
@@ -62,7 +62,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ id: s
                   <Td>{v.change_reason ?? "—"}</Td>
                   <Td className="font-mono text-xs">{v.sha256.slice(0, 12)}…</Td>
                   <Td className="whitespace-nowrap">
-                    {!deleted && <><Link className="text-brand-700 underline" target="_blank" href={`/documents/${id}/file?v=${v.version_no}`}>View</Link>{" · "}<Link className="text-brand-700 underline" href={`/documents/${id}/file?v=${v.version_no}&download=1`}>Download</Link></>}
+                    {!deleted && <><a className="text-brand-700 underline" target="_blank" href={`/documents/${id}/file?v=${v.version_no}`}>View</a>{" · "}<a className="text-brand-700 underline" href={`/documents/${id}/file?v=${v.version_no}&download=1`}>Download</a></>}
                   </Td>
                 </tr>
               ))}

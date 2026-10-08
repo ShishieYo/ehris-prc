@@ -10,8 +10,8 @@ export function auditQuery(ctx: Ctx, f: AuditFilters) {
   if (f.to) q = q.lte("occurred_at", `${f.to}T23:59:59+08:00`);
   if (f.module) q = q.eq("module", f.module);
   if (f.employee) q = q.eq("subject_employee_id", f.employee);
-  // Free-text filters are escaped so user input can't alter the filter expression.
-  const like = (v: string) => `%${v.replace(/[\\%_,()*]/g, " ").trim()}%`;
+  // Free-text filters: LIKE wildcards are escaped so input is matched literally.
+  const like = (v: string) => `%${v.trim().replace(/[\\%_]/g, "\\$&")}%`;
   if (f.actor) q = q.ilike("actor_label", like(f.actor));
   if (f.action) q = q.ilike("action", like(f.action));
   return q;

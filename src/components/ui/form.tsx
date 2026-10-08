@@ -1,10 +1,10 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
-import { useFieldError } from "./form-context";
+import { useId, type ComponentProps, type ReactNode } from "react";
+import { useCheckedValue, useFieldError, useFieldValue } from "./form-context";
 
 const control =
-  "block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 disabled:bg-slate-100";
+  "block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-500 focus:border-brand-500 disabled:bg-slate-100";
 
 function Wrap({ id, label, hint, error, required, children }: { id: string; label: string; hint?: string; error?: string; required?: boolean; children: ReactNode }) {
   return (
@@ -22,34 +22,41 @@ function Wrap({ id, label, hint, error, required, children }: { id: string; labe
 
 type Common = { label: string; hint?: string; error?: string };
 
-export function TextField({ label, hint, error, id, name, required, ...rest }: Common & ComponentProps<"input"> & { name: string }) {
-  const fid = id ?? `f-${name}`;
+export function TextField({ label, hint, error, id, name, required, defaultValue, ...rest }: Common & ComponentProps<"input"> & { name: string }) {
+  const uid = useId().replace(/:/g, "");
+  const fid = id ?? `f-${name}-${uid}`;
   error = useFieldError(name, error);
+  const restored = useFieldValue(name, defaultValue);
+  const value = rest.type === "file" || rest.type === "password" ? undefined : { defaultValue: restored };
   return (
     <Wrap id={fid} label={label} hint={hint} error={error} required={required}>
-      <input id={fid} name={name} required={required} aria-invalid={!!error} aria-describedby={error ? `${fid}-error` : hint ? `${fid}-hint` : undefined} className={control} {...rest} />
+      <input id={fid} name={name} required={required} aria-invalid={!!error} aria-describedby={error ? `${fid}-error` : hint ? `${fid}-hint` : undefined} className={control} {...value} {...rest} />
     </Wrap>
   );
 }
 
-export function TextAreaField({ label, hint, error, id, name, required, ...rest }: Common & ComponentProps<"textarea"> & { name: string }) {
-  const fid = id ?? `f-${name}`;
+export function TextAreaField({ label, hint, error, id, name, required, defaultValue, ...rest }: Common & ComponentProps<"textarea"> & { name: string }) {
+  const uid = useId().replace(/:/g, "");
+  const fid = id ?? `f-${name}-${uid}`;
   error = useFieldError(name, error);
+  const restored = useFieldValue(name, defaultValue);
   return (
     <Wrap id={fid} label={label} hint={hint} error={error} required={required}>
-      <textarea id={fid} name={name} required={required} rows={3} aria-invalid={!!error} aria-describedby={error ? `${fid}-error` : hint ? `${fid}-hint` : undefined} className={control} {...rest} />
+      <textarea id={fid} name={name} required={required} rows={3} aria-invalid={!!error} aria-describedby={error ? `${fid}-error` : hint ? `${fid}-hint` : undefined} className={control} defaultValue={restored} {...rest} />
     </Wrap>
   );
 }
 
 export type Option = { value: string; label: string };
 
-export function SelectField({ label, hint, error, id, name, required, options, placeholder, ...rest }: Common & ComponentProps<"select"> & { name: string; options: Option[]; placeholder?: string }) {
-  const fid = id ?? `f-${name}`;
+export function SelectField({ label, hint, error, id, name, required, options, placeholder, defaultValue, ...rest }: Common & ComponentProps<"select"> & { name: string; options: Option[]; placeholder?: string }) {
+  const uid = useId().replace(/:/g, "");
+  const fid = id ?? `f-${name}-${uid}`;
   error = useFieldError(name, error);
+  const restored = useFieldValue(name, defaultValue);
   return (
     <Wrap id={fid} label={label} hint={hint} error={error} required={required}>
-      <select id={fid} name={name} required={required} aria-invalid={!!error} aria-describedby={error ? `${fid}-error` : hint ? `${fid}-hint` : undefined} className={control} {...rest}>
+      <select key={`${name}:${String(restored ?? "")}`} id={fid} name={name} required={required} aria-invalid={!!error} aria-describedby={error ? `${fid}-error` : hint ? `${fid}-hint` : undefined} className={control} defaultValue={restored} {...rest}>
         {placeholder !== undefined && <option value="">{placeholder}</option>}
         {options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
@@ -59,10 +66,11 @@ export function SelectField({ label, hint, error, id, name, required, options, p
   );
 }
 
-export function CheckboxField({ label, name, ...rest }: { label: string; name: string } & ComponentProps<"input">) {
+export function CheckboxField({ label, name, defaultChecked, ...rest }: { label: string; name: string } & ComponentProps<"input">) {
+  const checked = useCheckedValue(name, defaultChecked);
   return (
     <label className="flex items-center gap-2 text-sm text-slate-800">
-      <input type="checkbox" name={name} className="h-4 w-4 rounded border-slate-300 text-brand-700" {...rest} />
+      <input type="checkbox" name={name} className="h-4 w-4 rounded border-slate-300 text-brand-700" defaultChecked={checked} {...rest} />
       {label}
     </label>
   );

@@ -34,6 +34,12 @@ export async function EmployeeView({ ctx, employeeId }: { ctx: Ctx; employeeId: 
         </Alert>
       )}
 
+      {d.expiringDocuments.length > 0 && (
+        <Alert tone="warning" title={`${d.expiringDocuments.length} document(s) expired or expiring within 30 days`}>
+          {d.expiringDocuments.slice(0, 3).map((x) => `${x.title} (${fmtDate(x.expires_on)})`).join(" · ")} — <Link href="/documents" className="underline">upload a renewed copy</Link>.
+        </Alert>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card>
           <CardBody>
@@ -135,7 +141,7 @@ export async function EmployeeView({ ctx, employeeId }: { ctx: Ctx; employeeId: 
                     {n.link ? <Link href={n.link} className="underline">{n.title}</Link> : n.title}
                   </p>
                   {n.body && <p className="text-xs text-slate-600">{n.body}</p>}
-                  <p className="text-xs text-slate-400">{fmtDateTime(n.created_at)}</p>
+                  <p className="text-xs text-slate-500">{fmtDateTime(n.created_at)}</p>
                 </li>
               ))}
               {missingItems.length > 0 && (
@@ -148,7 +154,6 @@ export async function EmployeeView({ ctx, employeeId }: { ctx: Ctx; employeeId: 
           )}
         </Card>
       </div>
-      <p className="text-xs text-slate-400">Status labels follow your agency workflow settings.</p>
     </div>
   );
 }

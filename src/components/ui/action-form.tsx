@@ -1,11 +1,11 @@
 "use client";
 
-import { useActionState, useEffect, useRef, type ReactNode } from "react";
+import { useActionState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { Alert } from "./primitives";
 import { btnClass } from "./button";
 import type { ActionState } from "@/lib/errors";
-import { FormErrorsContext } from "./form-context";
+import { FormErrorsContext, FormValuesContext } from "./form-context";
 
 export function SubmitButton({ children, variant = "primary", size = "md", pendingText = "Working…", confirm, name, value }: {
   children: ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm" | "md"; pendingText?: string; confirm?: string; name?: string; value?: string;
@@ -33,17 +33,44 @@ export function ActionForm({ action, children, className, resetOnSuccess }: {
   className?: string;
   resetOnSuccess?: boolean;
 }) {
-  const [state, formAction] = useActionState(action, null);
+  // On failure, remember what was typed so React's post-action form reset doesn't wipe it.
+  const withValues = useCallback(
+    async (prev: ActionState, fd: FormData): Promise<ActionState> => {
+      const result = await action(prev, fd);
+      if (result && !result.ok) {
+        const values: Record<string, string> = { __submitted: "1" };
+        for (const [k, v] of fd.entries()) if (typeof v === "string" && !/password|confirm|^\$ACTION/i.test(k)) values[k] = v;
+        return { ...result, values };
+      }
+      return result;
+    },
+    [action],
+  );
+  const [state, formAction] = useActionState(withValues, null);
   const ref = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state?.ok && resetOnSuccess) ref.current?.reset();
   }, [state, resetOnSuccess]);
   const errors = state && !state.ok ? state.fieldErrors ?? {} : {};
+  const values = state && !state.ok ? state.values ?? {} : {};
   return (
     <form ref={ref} action={formAction} className={className ?? "space-y-4"} noValidate={false}>
-      {state && !state.ok && <Alert tone="danger">{state.error}</Alert>}
+      {state && !state.ok && (
+        <Alert tone="danger">
+          {state.error}
+          {state.fieldErrors && Object.keys(state.fieldErrors).length > 0 && (
+            <ul className="mt-1 list-disc pl-5">
+              {Object.entries(state.fieldErrors).map(([k, m]) => (
+                <li key={k}>{k.replace(/_/g, " ")}: {m}</li>
+              ))}
+            </ul>
+          )}
+        </Alert>
+      )}
       {state?.ok && state.message && <Alert tone="success">{state.message}</Alert>}
-      <FormErrorsContext.Provider value={errors}>{children}</FormErrorsContext.Provider>
+      <FormErrorsContext.Provider value={errors}>
+        <FormValuesContext.Provider value={values}>{children}</FormValuesContext.Provider>
+      </FormErrorsContext.Provider>
     </form>
   );
 }

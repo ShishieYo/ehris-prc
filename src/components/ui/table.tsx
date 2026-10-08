@@ -3,7 +3,7 @@ import type { ComponentProps, ReactNode } from "react";
 /** Responsive, accessible table: horizontally scrollable on small screens, with a screen-reader caption. */
 export function Table({ caption, children }: { caption: string; children: ReactNode }) {
   return (
-    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label={caption}>
+    <div className="relative overflow-x-auto" tabIndex={0} role="region" aria-label={caption}>
       <table className="min-w-full divide-y divide-line text-sm">
         <caption className="sr-only">{caption}</caption>
         {children}

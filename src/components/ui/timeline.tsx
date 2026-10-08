@@ -43,7 +43,7 @@ export function StepTracker({ steps, currentOrder, finished, failed }: { steps: 
         const cls = state === "done" ? "bg-emerald-600 text-white" : state === "current" ? "bg-brand-700 text-white ring-2 ring-brand-300" : "bg-slate-200 text-slate-600";
         return (
           <li key={s.order} className="flex items-center gap-2">
-            <span aria-hidden="true" className="text-slate-400">→</span>
+            <span aria-hidden="true" className="text-slate-500">→</span>
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${cls}`} aria-current={state === "current" ? "step" : undefined}>
               {s.name}
             </span>

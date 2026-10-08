@@ -39,7 +39,7 @@ export default async function TeamAttendancePage({ searchParams }: { searchParam
                     <Td><Link className="text-brand-700 underline" href={`/attendance?employee=${p.id}`}>{p.full_name}</Link><div className="text-xs text-slate-500">{p.employee_no}</div></Td>
                     <Td>{p.unit_name ?? p.division_name}</Td>
                     <Td>{fmtTime(r?.time_in)}</Td><Td>{fmtTime(r?.time_out)}</Td><Td>{fmtDuration(r?.total_minutes)}</Td>
-                    <Td>{r ? <AttendanceBadge code={r.status_code} name={name(r.status_code)} /> : <span className="text-slate-400">No log</span>}</Td>
+                    <Td>{r ? <AttendanceBadge code={r.status_code} name={name(r.status_code)} /> : <span className="text-slate-500">No log</span>}</Td>
                   </tr>
                 );
               })}

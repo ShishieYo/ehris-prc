@@ -35,3 +35,12 @@ export function LinkButton({
 }: ComponentProps<typeof Link> & { variant?: Variant; size?: Size }) {
   return <Link className={btnClass(variant, size, className)} {...props} />;
 }
+
+/**
+ * Plain anchor styled as a button, for downloads and generated files.
+ * Never use <Link> for these: Next.js prefetches Links, which would trigger the
+ * file route (and its audit logging) without the user asking for the file.
+ */
+export function FileLinkButton({ variant, size, className, ...props }: ComponentProps<"a"> & { variant?: Variant; size?: Size }) {
+  return <a className={btnClass(variant, size, className)} {...props} />;
+}

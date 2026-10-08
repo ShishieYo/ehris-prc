@@ -50,7 +50,7 @@ export async function provisionUser(_prev: ActionState, formData: FormData): Pro
 
 export async function updateUserRoles(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).user_id);
+  const id = z.guid().safeParse(formObject(formData).user_id);
   if (!id.success) return { ok: false, error: "User not found." };
   const { error } = await ctx.db.rpc("admin_set_user_roles", { p_user: id.data, p_role_codes: rolesOf(formData) });
   if (error) return fail(error, "set-roles");
@@ -61,7 +61,7 @@ export async function updateUserRoles(_prev: ActionState, formData: FormData): P
 export async function setUserActive(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
   const raw = formObject(formData);
-  const id = z.uuid().safeParse(raw.user_id);
+  const id = z.guid().safeParse(raw.user_id);
   if (!id.success) return;
   await ctx.db.rpc("admin_set_user_active", { p_user: id.data, p_active: raw.active === "true" });
   revalidatePath("/admin/users");

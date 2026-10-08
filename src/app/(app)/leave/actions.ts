@@ -25,7 +25,7 @@ export async function saveLeave(_prev: ActionState, formData: FormData): Promise
   if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fieldErrorsFrom(parsed.error.issues) };
 
   const row = { ...parsed.data, employee_id: ctx.employeeId };
-  const id = raw.id ? z.uuid().safeParse(raw.id) : null;
+  const id = raw.id ? z.guid().safeParse(raw.id) : null;
   let savedId: string;
   if (id?.success) {
     const { error } = await ctx.db.from("leave_applications").update(row).eq("id", id.data);
@@ -48,7 +48,7 @@ export async function saveLeave(_prev: ActionState, formData: FormData): Promise
 
 export async function deleteLeaveDraft(formData: FormData): Promise<void> {
   const ctx = await requireActionCtx();
-  const id = z.uuid().safeParse(formObject(formData).id);
+  const id = z.guid().safeParse(formObject(formData).id);
   if (!id.success) return;
   await ctx.db.from("leave_applications").delete().eq("id", id.data);
   revalidatePath("/leave");
@@ -56,7 +56,7 @@ export async function deleteLeaveDraft(formData: FormData): Promise<void> {
 }
 
 const balanceSchema = z.object({
-  employee_id: z.uuid(),
+  employee_id: z.guid(),
   leave_type_code: z.string().min(1),
   year: z.coerce.number().int().min(2000).max(2100),
   beginning: z.coerce.number().min(0).max(1000),

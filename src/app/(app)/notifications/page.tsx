@@ -24,7 +24,7 @@ export default async function NotificationsPage() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-900">{!n.read_at && <Badge tone="info">New</Badge>} {n.link ? <Link className="underline" href={n.link}>{n.title}</Link> : n.title}</p>
                   {n.body && <p className="text-sm text-slate-600">{n.body}</p>}
-                  <p className="text-xs text-slate-400">{fmtDateTime(n.created_at)}</p>
+                  <p className="text-xs text-slate-500">{fmtDateTime(n.created_at)}</p>
                 </div>
                 {!n.read_at && <InlineAction action={markRead} hidden={{ id: n.id }}><SubmitButton variant="ghost" size="sm">Mark read</SubmitButton></InlineAction>}
               </li>
