@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Ctx } from "@/lib/auth/session";
 import { getMyDashboard } from "@/lib/data/dashboard";
-import { Alert, Badge, Card, CardBody, CardHeader, EmptyState, Stat } from "@/components/ui/primitives";
+import { Alert, Badge, Card, CardBody, CardHeader, EmptyState } from "@/components/ui/primitives";
 import { LinkButton } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/charts";
 import { RequestStatusBadge, AttendanceBadge } from "@/components/ui/status";

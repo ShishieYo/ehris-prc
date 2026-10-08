@@ -189,8 +189,8 @@ where a.employee_id = 'e0000000-0000-0000-0000-000000000005'
                      where extract(isodow from w) < 6 and w::date <= current_date - 3);
 
 -- Login accounts -> profiles and roles
-insert into public.profiles (user_id, employee_id, display_name)
-select u.id, e.id, v.display_name
+insert into public.profiles (user_id, employee_id, display_name, email)
+select u.id, e.id, v.display_name, v.email
 from (values
   ('admin@demo.prc3.example',               null,         'System Administrator (DEMO)'),
   ('ricardo.villanueva@demo.prc3.example',  'DEMO-0001', 'Ricardo A. Villanueva'),

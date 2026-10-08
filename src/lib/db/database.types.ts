@@ -1085,7 +1085,7 @@ export type Database = {
           raw: Json;
           normalized?: Json | null;
           errors?: Json;
-          status: string;
+          status?: string;
           result?: string | null;
         };
         Update: {
@@ -1528,6 +1528,7 @@ export type Database = {
           user_id: string;
           employee_id: string | null;
           display_name: string;
+          email: string | null;
           is_active: boolean;
           privacy_acknowledged_at: string | null;
           privacy_notice_version: string | null;
@@ -1538,6 +1539,7 @@ export type Database = {
           user_id: string;
           employee_id?: string | null;
           display_name: string;
+          email?: string | null;
           is_active?: boolean;
           privacy_acknowledged_at?: string | null;
           privacy_notice_version?: string | null;
@@ -1548,6 +1550,7 @@ export type Database = {
           user_id?: string;
           employee_id?: string | null;
           display_name?: string;
+          email?: string | null;
           is_active?: boolean;
           privacy_acknowledged_at?: string | null;
           privacy_notice_version?: string | null;
@@ -1892,7 +1895,7 @@ export type Database = {
         Returns: number;
       };
       admin_provision_user: {
-        Args: { p_user_id: string | null; p_display_name: string | null; p_employee_id: string | null; p_role_codes: string[] | null };
+        Args: { p_user_id: string | null; p_email: string | null; p_display_name: string | null; p_employee_id: string | null; p_role_codes: string[] | null };
         Returns: undefined;
       };
       admin_remaining_super_admins: {

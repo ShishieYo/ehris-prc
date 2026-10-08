@@ -4,7 +4,7 @@ import { getLookups } from "@/lib/data/lookups";
 import { getCorrection, getRequester } from "@/lib/data/requests";
 import { Alert, Card, CardBody, CardHeader, DefList, PageHeader } from "@/components/ui/primitives";
 import { RequestStatusBadge } from "@/components/ui/status";
-import { ActionForm, InlineAction, SubmitButton } from "@/components/ui/action-form";
+import { InlineAction, SubmitButton } from "@/components/ui/action-form";
 import { CorrectionForm, CORRECTION_TYPES } from "@/components/attendance/correction-form";
 import { WorkflowPanel } from "@/components/requests/workflow-panel";
 import { deleteCorrectionDraft } from "../actions";

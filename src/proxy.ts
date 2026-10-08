@@ -59,7 +59,8 @@ export async function proxy(request: NextRequest) {
   const { data } = await supabase.auth.getClaims();
   const signedIn = !!data?.claims;
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.has(pathname);
+  // Job endpoints authenticate with their own bearer secret, not a user session.
+  const isPublic = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/api/jobs/");
   const secure = process.env.NODE_ENV === "production";
 
   const redirectTo = (path: string, search?: Record<string, string>) => {

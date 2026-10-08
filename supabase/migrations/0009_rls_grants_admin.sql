@@ -288,7 +288,7 @@ begin
 end $$;
 
 create function public.admin_provision_user(
-  p_user_id uuid, p_display_name text, p_employee_id uuid, p_role_codes text[]
+  p_user_id uuid, p_email text, p_display_name text, p_employee_id uuid, p_role_codes text[]
 ) returns void
 language plpgsql security definer set search_path = public as $$
 begin
@@ -298,10 +298,10 @@ begin
   if not exists (select 1 from auth.users where id = p_user_id) then
     raise exception 'Authentication account does not exist' using errcode = '22023', hint = 'user';
   end if;
-  insert into public.profiles (user_id, display_name, employee_id)
-  values (p_user_id, p_display_name, p_employee_id)
+  insert into public.profiles (user_id, email, display_name, employee_id)
+  values (p_user_id, lower(btrim(p_email)), p_display_name, p_employee_id)
   on conflict (user_id) do update
-    set display_name = excluded.display_name, employee_id = excluded.employee_id;
+    set email = excluded.email, display_name = excluded.display_name, employee_id = excluded.employee_id;
   if p_user_id <> auth.uid() then
     perform public.admin_set_user_roles(p_user_id, p_role_codes);
   end if;
@@ -369,6 +369,6 @@ end $$;
 
 grant execute on function
   public.assignable_staff(), public.admin_set_user_roles(uuid, text[]),
-  public.admin_provision_user(uuid, text, uuid, text[]), public.admin_set_user_active(uuid, boolean),
+  public.admin_provision_user(uuid, text, text, uuid, text[]), public.admin_set_user_active(uuid, boolean),
   public.admin_save_role(uuid, text, text, text, text[])
   to authenticated;

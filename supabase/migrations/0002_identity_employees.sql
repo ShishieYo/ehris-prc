@@ -132,12 +132,14 @@ create table public.profiles (
   user_id                  uuid primary key references auth.users(id) on delete cascade,
   employee_id              uuid unique references public.employees(id) on delete set null,
   display_name             text not null,
+  email                    text,
   is_active                boolean not null default true,
   privacy_acknowledged_at  timestamptz,
   privacy_notice_version   text,
   created_at               timestamptz not null default now(),
   updated_at               timestamptz not null default now()
 );
+create unique index profiles_email_uq on public.profiles (lower(email)) where email is not null;
 create trigger profiles_updated_at before update on public.profiles
   for each row execute function public.set_updated_at();
 

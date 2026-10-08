@@ -13,6 +13,12 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Tailwind CSS v4 processing under Turbopack (from the project scaffold).
+  turbopack: {
+    rules: {
+      "*.css": { loaders: ["@tailwindcss/turbopack"], as: "*.css" },
+    },
+  },
   // Cache Components is deliberately NOT enabled: every page here is
   // per-user and contains personal data, so nothing should be shared or
   // cached across requests.

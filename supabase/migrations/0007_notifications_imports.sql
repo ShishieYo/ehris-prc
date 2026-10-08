@@ -66,8 +66,8 @@ create table public.import_batches (
   id             uuid primary key default gen_random_uuid(),
   kind           text not null check (kind in ('employees')),
   file_name      text not null,
-  status         text not null default 'validated'
-                   check (status in ('validated', 'committed', 'cancelled')),
+  status         text not null default 'uploaded'
+                   check (status in ('uploaded', 'validated', 'committed', 'cancelled')),
   mapping        jsonb not null default '{}'::jsonb,
   total_rows     int not null default 0,
   valid_rows     int not null default 0,
@@ -85,7 +85,7 @@ create table public.import_rows (
   raw        jsonb not null,
   normalized jsonb,   -- {"core": {...}, "private": {...}} ready for hr_save_employee
   errors     jsonb not null default '[]'::jsonb,
-  status     text not null check (status in ('valid', 'error', 'imported', 'import_failed')),
+  status     text not null default 'pending' check (status in ('pending', 'valid', 'error', 'imported', 'import_failed')),
   result     text,
   unique (batch_id, row_no)
 );

@@ -27,18 +27,17 @@ export function Donut({ items, label }: { items: { name: string; count: number }
   if (total === 0) return <p className="text-sm text-slate-500">No data yet.</p>;
   const r = 40;
   const c = 2 * Math.PI * r;
-  let offset = 0;
+  // Cumulative start of each slice, computed without mutation.
+  const starts = items.map((_, i) => items.slice(0, i).reduce((sum, it) => sum + (it.count / total) * c, 0));
   return (
     <div className="flex flex-wrap items-center gap-6">
       <svg viewBox="0 0 100 100" className="h-32 w-32 -rotate-90" role="img" aria-label={label}>
         {items.map((i, idx) => {
           const len = (i.count / total) * c;
-          const el = (
+          return (
             <circle key={i.name} cx="50" cy="50" r={r} fill="none" stroke={PALETTE[idx % PALETTE.length]} strokeWidth="16"
-              strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-offset} />
+              strokeDasharray={`${len} ${c - len}`} strokeDashoffset={-starts[idx]} />
           );
-          offset += len;
-          return el;
         })}
       </svg>
       <ul className="space-y-1 text-sm">
