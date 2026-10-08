@@ -310,7 +310,11 @@ try {
   await ap.getByRole("button", { name: "Sign in" }).click();
   await ap.getByText("Incorrect email or password.").waitFor();
   ok(true, "unknown account gets the identical message (no account enumeration)");
-  for (let i = 0; i < 5; i++) { await ap.getByLabel("Password").fill(`wrong-password-${i}`); await ap.getByRole("button", { name: "Sign in" }).click(); await ap.waitForTimeout(250); }
+  for (let i = 0; i < 7; i++) {
+    await ap.getByLabel("Password").fill(`wrong-password-${i}`);
+    await ap.getByRole("button", { name: "Sign in" }).click();
+    await ap.getByRole("button", { name: "Sign in" }).waitFor(); // the button reads "Signing in…" while the attempt is pending
+  }
   await ap.getByText(/Too many sign-in attempts/).waitFor({ timeout: 10000 });
   ok(true, "repeated failures are rate-limited");
   await ap.goto(`${BASE}/forgot-password`);
