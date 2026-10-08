@@ -453,7 +453,10 @@ begin
   select user_id into v_requester from public.profiles where employee_id = r.employee_id;
 
   if p_action = 'cancel' then
-    if r.status not in ('draft', 'in_review', 'approved') then
+    -- Only open requests: a request whose last step is approved is final, and
+    -- cancelling it would leave balances and records inconsistent.
+    if r.status not in ('draft', 'in_review', 'approved')
+       or (r.status = 'approved' and r.current_step_order is null) then
       raise exception 'This request can no longer be cancelled' using errcode = '22023';
     end if;
     if not (public.is_self(r.employee_id) or public.has_permission('workflow.override')) then

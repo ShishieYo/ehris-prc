@@ -7,7 +7,7 @@ create function t.uid(p_email text) returns uuid language sql stable security de
   $$ select id from auth.users where email = p_email $$;
 
 create function t.as_user(p_email text) returns void language plpgsql as $$
-declare v uuid := (select id from auth.users where email = p_email);
+declare v uuid := t.uid(p_email);
 begin
   if v is null then raise exception 'no such test user %', p_email; end if;
   perform set_config('request.jwt.claims', json_build_object('sub', v, 'role', 'authenticated')::text, true);
