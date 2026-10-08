@@ -88,7 +88,7 @@ create trigger leave_balances_updated_at before update on public.leave_balances
 
 create table public.leave_applications (
   id                 uuid primary key default gen_random_uuid(),
-  request_no         text not null unique,
+  request_no         text not null unique default 'pending', -- replaced by prepare_request()
   employee_id        uuid not null references public.employees(id) on delete cascade,
   leave_type_code    text not null references public.leave_types(code),
   date_from          date not null,
@@ -148,7 +148,7 @@ create trigger attendance_records_updated_at before update on public.attendance_
 
 create table public.attendance_corrections (
   id                 uuid primary key default gen_random_uuid(),
-  request_no         text not null unique,
+  request_no         text not null unique default 'pending', -- replaced by prepare_request()
   employee_id        uuid not null references public.employees(id) on delete cascade,
   work_date          date not null,
   correction_type    text not null check (correction_type in
@@ -191,7 +191,7 @@ create table public.hr_request_types (
 
 create table public.hr_requests (
   id                 uuid primary key default gen_random_uuid(),
-  request_no         text not null unique,
+  request_no         text not null unique default 'pending', -- replaced by prepare_request()
   employee_id        uuid not null references public.employees(id) on delete cascade,
   request_type_code  text not null references public.hr_request_types(code),
   priority           text not null default 'normal' check (priority in ('low', 'normal', 'high', 'urgent')),

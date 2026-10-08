@@ -46,7 +46,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          request_no: string;
+          request_no?: string;
           employee_id: string;
           work_date: string;
           correction_type: string;
@@ -986,7 +986,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          request_no: string;
+          request_no?: string;
           employee_id: string;
           request_type_code: string;
           priority?: string;
@@ -1120,7 +1120,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          request_no: string;
+          request_no?: string;
           employee_id: string;
           leave_type_code: string;
           date_from: string;

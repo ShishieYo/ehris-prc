@@ -7,14 +7,16 @@ import { btnClass } from "./button";
 import type { ActionState } from "@/lib/errors";
 import { FormErrorsContext } from "./form-context";
 
-export function SubmitButton({ children, variant = "primary", size = "md", pendingText = "Working…", confirm }: {
-  children: ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm" | "md"; pendingText?: string; confirm?: string;
+export function SubmitButton({ children, variant = "primary", size = "md", pendingText = "Working…", confirm, name, value }: {
+  children: ReactNode; variant?: "primary" | "secondary" | "danger" | "ghost"; size?: "sm" | "md"; pendingText?: string; confirm?: string; name?: string; value?: string;
 }) {
-  const { pending } = useFormStatus();
+  const { pending, data } = useFormStatus();
+  // With several submit buttons, only the one that was pressed shows the pending label.
+  const mine = pending && (!name || data?.get(name) === value);
   return (
-    <button type="submit" disabled={pending} className={btnClass(variant, size)}
+    <button type="submit" name={name} value={value} disabled={pending} className={btnClass(variant, size)}
       onClick={(e) => { if (confirm && !window.confirm(confirm)) e.preventDefault(); }}>
-      {pending ? pendingText : children}
+      {mine ? pendingText : children}
     </button>
   );
 }
