@@ -174,7 +174,7 @@ select e.id, d::date,
        ((d::date + time '07:50') + ((abs(hashtext(e.id::text || d::text)) % 25) || ' minutes')::interval) at time zone 'Asia/Manila',
        case when d::date = current_date then null else (d::date + time '17:05') at time zone 'Asia/Manila' end,
        60,
-       case when abs(hashtext(e.id::text || d::text)) % 25 > 10 then 'LATE' else 'PRESENT' end,
+       case when abs(hashtext(e.id::text || d::text)) % 25 > 20 then 'LATE' else 'PRESENT' end,
        'biometric', 'DEMO DATA'
 from public.employees e
 cross join generate_series(current_date - 30, current_date, interval '1 day') d
@@ -189,8 +189,8 @@ where a.employee_id = 'e0000000-0000-0000-0000-000000000005'
                      where extract(isodow from w) < 6 and w::date <= current_date - 3);
 
 -- Login accounts -> profiles and roles
-insert into public.profiles (user_id, employee_id, display_name)
-select u.id, e.id, v.display_name
+insert into public.profiles (user_id, employee_id, display_name, email)
+select u.id, e.id, v.display_name, v.email
 from (values
   ('admin@demo.prc3.example',               null,         'System Administrator (DEMO)'),
   ('ricardo.villanueva@demo.prc3.example',  'DEMO-0001', 'Ricardo A. Villanueva'),

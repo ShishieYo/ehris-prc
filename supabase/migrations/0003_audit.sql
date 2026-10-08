@@ -26,7 +26,7 @@ create index audit_logs_actor_idx on public.audit_logs(actor_user_id, occurred_a
 create function public.audit_logs_immutable() returns trigger
 language plpgsql as $$
 begin
-  raise exception 'Audit records are immutable' using errcode = '42501';
+  raise exception 'Audit records are immutable' using errcode = '42501', hint = 'user';
 end $$;
 create trigger audit_logs_no_update before update or delete on public.audit_logs
   for each row execute function public.audit_logs_immutable();
@@ -145,7 +145,7 @@ create function public.log_event(
 language plpgsql security definer set search_path = public as $$
 declare
   c_allowed text[] := array[
-    'auth.login', 'auth.logout', 'auth.password_reset_requested',
+    'auth.login', 'auth.logout', 'auth.password_reset_requested', 'auth.password_changed',
     'document.viewed', 'document.downloaded',
     'employee.viewed', 'employee.sensitive_viewed',
     'pds.viewed', 'pds.downloaded', 'pds.certified',
@@ -153,14 +153,14 @@ declare
     'privacy.acknowledged', 'import.previewed'];
 begin
   if auth.uid() is null then
-    raise exception 'Not authenticated' using errcode = '28000';
+    raise exception 'Not authenticated' using errcode = '28000', hint = 'user';
   end if;
   if p_action <> all (c_allowed) then
-    raise exception 'Unsupported audit action' using errcode = '22023';
+    raise exception 'Unsupported audit action' using errcode = '22023', hint = 'user';
   end if;
   if p_action in ('document.viewed', 'document.downloaded') then
     if p_entity_id is null or not public.can_read_document(p_entity_id::uuid) then
-      raise exception 'Not authorized' using errcode = '42501';
+      raise exception 'Not authorized' using errcode = '42501', hint = 'user';
     end if;
   end if;
   insert into public.audit_logs (
@@ -186,7 +186,7 @@ returns table (
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not (public.has_permission('employee.read_all') or public.has_permission('audit.read')) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   return query
     select a.occurred_at, a.actor_label, a.entity_type, n.key,

@@ -1,0 +1,57 @@
+# Supabase CLI configuration for LOCAL development (`supabase start`).
+# Authentication hardening that must ALSO be set on the hosted project
+# (Dashboard → Authentication) is marked [prod]. Not exercised in this repo's
+# automated tests (the CLI/Docker were not available) — review before use.
+project_id = "ehris-prc"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17
+
+[db.migrations]
+enabled = true
+
+# Demo data needs the demo auth accounts to exist first, so it is loaded
+# explicitly (see README → Demo environment) rather than by `db reset`.
+[db.seed]
+enabled = false
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000/auth/callback"]
+jwt_expiry = 3600                       # [prod] 1 hour access tokens
+enable_refresh_token_rotation = true    # [prod]
+refresh_token_reuse_interval = 10
+enable_signup = false                   # [prod] accounts are invited by an administrator
+enable_anonymous_sign_ins = false
+minimum_password_length = 12            # [prod] matches the application's reset form
+password_requirements = "lower_upper_letters_digits"  # [prod]
+
+[auth.email]
+enable_signup = false
+double_confirm_changes = true
+enable_confirmations = true
+secure_password_change = true           # [prod] re-authenticate before changing password
+max_frequency = "60s"
+
+# [prod] Enable TOTP multi-factor authentication for HR and administrator roles.
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+# [prod, paid plans] Server-side session limits:
+# [auth.sessions]
+# timebox = "12h"
+# inactivity_timeout = "30m"

@@ -162,7 +162,6 @@ insert into public.workflow_steps (workflow_code, step_order, name, actor_kind, 
 insert into public.system_settings (key, value, description) values
   ('org.name', '"PRC Region III"', 'Agency display name'),
   ('privacy.notice_version', '"2026.1"', 'Increment to require users to re-acknowledge the privacy notice'),
-  ('session.idle_timeout_minutes', '30', 'Sign users out after this many idle minutes'),
   ('documents.max_size_mb', '10', 'Maximum upload size'),
   ('documents.allowed_mime', '["application/pdf","image/jpeg","image/png"]', 'Accepted file types'),
   ('notifications.channels', '["in_app"]', 'Enabled channels: in_app, email, sms (email/sms need a delivery worker)'),

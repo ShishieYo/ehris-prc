@@ -71,7 +71,7 @@ begin
   if tg_op = 'DELETE' and pg_trigger_depth() > 1 then
     return old;  -- allow cascade from a deleted employee/document
   end if;
-  raise exception 'Document versions are immutable' using errcode = '42501';
+  raise exception 'Document versions are immutable' using errcode = '42501', hint = 'user';
 end $$;
 create trigger document_versions_no_change before update or delete on public.document_versions
   for each row execute function public.document_versions_immutable();
@@ -119,10 +119,10 @@ declare
                               '["application/pdf","image/jpeg","image/png"]'::jsonb);
 begin
   if p_size > v_max_mb * 1024 * 1024 then
-    raise exception 'File is larger than the allowed size' using errcode = '22023';
+    raise exception 'File is larger than the allowed size' using errcode = '22023', hint = 'user';
   end if;
   if not (v_allowed ? p_mime) then
-    raise exception 'This file type is not allowed' using errcode = '22023';
+    raise exception 'This file type is not allowed' using errcode = '22023', hint = 'user';
   end if;
 end $$;
 
@@ -130,10 +130,10 @@ create function public.assert_storage_object(p_employee uuid, p_path text) retur
 language plpgsql stable security definer set search_path = public as $$
 begin
   if split_part(p_path, '/', 1) <> p_employee::text then
-    raise exception 'Invalid storage location' using errcode = '22023';
+    raise exception 'Invalid storage location' using errcode = '22023', hint = 'user';
   end if;
   if not exists (select 1 from storage.objects where bucket_id = 'personnel-documents' and name = p_path) then
-    raise exception 'Uploaded file was not found' using errcode = '22023';
+    raise exception 'Uploaded file was not found' using errcode = '22023', hint = 'user';
   end if;
 end $$;
 
@@ -159,13 +159,13 @@ declare
   v_hr boolean := public.has_permission('document.write');
 begin
   if not public.can_upload_document_for(p_employee_id) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if not exists (select 1 from public.document_categories where code = p_category_code and is_active) then
-    raise exception 'Unknown document category' using errcode = '22023';
+    raise exception 'Unknown document category' using errcode = '22023', hint = 'user';
   end if;
   if p_related_type is not null and not public.can_read_request(p_related_type, p_related_id) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   perform public.check_upload(p_mime_type, p_size_bytes);
   perform public.assert_storage_object(p_employee_id, p_storage_path);
@@ -204,13 +204,13 @@ declare
 begin
   select * into d from public.documents where id = p_document_id and deleted_at is null for update;
   if not found or not (v_hr or public.is_self(d.employee_id)) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if coalesce(btrim(p_reason), '') = '' then
-    raise exception 'A reason is required when replacing a document' using errcode = '22023';
+    raise exception 'A reason is required when replacing a document' using errcode = '22023', hint = 'user';
   end if;
   if exists (select 1 from public.document_versions where document_id = d.id and sha256 = p_sha256) then
-    raise exception 'This exact file is already stored for this document' using errcode = '23505';
+    raise exception 'This exact file is already stored for this document' using errcode = '23505', hint = 'user';
   end if;
   perform public.check_upload(p_mime_type, p_size_bytes);
   perform public.assert_storage_object(d.employee_id, p_storage_path);
@@ -244,7 +244,7 @@ begin
   select * into d from public.documents where id = p_document_id and deleted_at is null;
   if not found or not (public.has_permission('document.write')
                        or (public.is_self(d.employee_id) and d.status <> 'verified')) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   update public.documents
   set title = p_title, doc_date = p_doc_date, issuing_agency = p_issuing_agency,
@@ -256,19 +256,19 @@ create function public.set_document_status(p_document_id uuid, p_status text, p_
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.has_permission('document.verify') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if p_status not in ('for_review', 'verified', 'rejected', 'archived') then
-    raise exception 'Invalid status' using errcode = '22023';
+    raise exception 'Invalid status' using errcode = '22023', hint = 'user';
   end if;
   if p_status = 'rejected' and coalesce(btrim(p_remarks), '') = '' then
-    raise exception 'Remarks are required when rejecting a document' using errcode = '22023';
+    raise exception 'Remarks are required when rejecting a document' using errcode = '22023', hint = 'user';
   end if;
   perform set_config('app.change_reason', coalesce(p_remarks, ''), true);
   update public.documents set status = p_status, remarks = coalesce(p_remarks, remarks)
   where id = p_document_id and deleted_at is null;
   if not found then
-    raise exception 'Document not found' using errcode = 'P0002';
+    raise exception 'Document not found' using errcode = 'P0002', hint = 'user';
   end if;
 end $$;
 
@@ -279,16 +279,16 @@ create function public.delete_document(p_document_id uuid, p_reason text) return
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.has_permission('document.delete') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if coalesce(btrim(p_reason), '') = '' then
-    raise exception 'A reason is required to delete a document' using errcode = '22023';
+    raise exception 'A reason is required to delete a document' using errcode = '22023', hint = 'user';
   end if;
   perform set_config('app.change_reason', p_reason, true);
   update public.documents
   set deleted_at = now(), deleted_by = auth.uid(), deleted_reason = p_reason
   where id = p_document_id and deleted_at is null;
   if not found then
-    raise exception 'Document not found' using errcode = 'P0002';
+    raise exception 'Document not found' using errcode = 'P0002', hint = 'user';
   end if;
 end $$;

@@ -125,7 +125,7 @@ create function public.employee_references_limit() returns trigger
 language plpgsql as $$
 begin
   if (select count(*) from public.employee_references where employee_id = new.employee_id) >= 3 then
-    raise exception 'A PDS carries at most three character references' using errcode = '23514';
+    raise exception 'A PDS carries at most three character references' using errcode = '23514', hint = 'user';
   end if;
   return new;
 end $$;
@@ -179,7 +179,7 @@ language plpgsql security definer set search_path = public as $$
 declare v_emp uuid := public.current_employee_id(); v_id uuid;
 begin
   if v_emp is null then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   insert into public.pds_submissions (employee_id, kind, by_user, by_name)
   values (v_emp, 'certified', auth.uid(), public.audit_actor_label())
@@ -192,13 +192,13 @@ language plpgsql security definer set search_path = public as $$
 declare v_id uuid;
 begin
   if not public.has_permission('pds.verify') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if p_kind not in ('verified', 'returned') then
-    raise exception 'Invalid review outcome' using errcode = '22023';
+    raise exception 'Invalid review outcome' using errcode = '22023', hint = 'user';
   end if;
   if p_kind = 'returned' and coalesce(btrim(p_remarks), '') = '' then
-    raise exception 'Remarks are required when returning a PDS' using errcode = '22023';
+    raise exception 'Remarks are required when returning a PDS' using errcode = '22023', hint = 'user';
   end if;
   insert into public.pds_submissions (employee_id, kind, by_user, by_name, remarks)
   values (p_employee, p_kind, auth.uid(), public.audit_actor_label(), p_remarks)
