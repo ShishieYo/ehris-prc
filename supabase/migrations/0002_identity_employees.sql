@@ -316,30 +316,30 @@ declare
   v_sets text[] := '{}';
 begin
   if not public.has_permission('employee.write') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   p_core := coalesce(p_core, '{}'::jsonb);
   p_private := coalesce(p_private, '{}'::jsonb);
 
   for k in select jsonb_object_keys(p_core) loop
     if k <> all (c_core) then
-      raise exception 'Field % cannot be edited', k using errcode = '22023';
+      raise exception 'Field % cannot be edited', k using errcode = '22023', hint = 'user';
     end if;
     if k = any (c_protected) and not public.has_permission('employee.manage_status') then
-      raise exception 'Not authorized to change %', k using errcode = '42501';
+      raise exception 'Not authorized to change %', k using errcode = '42501', hint = 'user';
     end if;
     if v_id is not null and k = 'employee_no' then
-      raise exception 'Employee number cannot be changed' using errcode = '22023';
+      raise exception 'Employee number cannot be changed' using errcode = '22023', hint = 'user';
     end if;
     v_cols := v_cols || k;
   end loop;
   for k in select jsonb_object_keys(p_private) loop
     if k <> all (c_private) then
-      raise exception 'Field % cannot be edited', k using errcode = '22023';
+      raise exception 'Field % cannot be edited', k using errcode = '22023', hint = 'user';
     end if;
   end loop;
   if p_private <> '{}'::jsonb and not public.has_permission('employee.read_sensitive') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
 
   if v_id is null then
@@ -350,7 +350,7 @@ begin
     ) using p_core, v_id;
   else
     if coalesce(btrim(p_reason), '') = '' and v_cols <> '{}' then
-      raise exception 'A reason is required when changing an employee record' using errcode = '22023';
+      raise exception 'A reason is required when changing an employee record' using errcode = '22023', hint = 'user';
     end if;
     perform set_config('app.change_reason', coalesce(p_reason, ''), true);
     if v_cols <> '{}' then
@@ -360,7 +360,7 @@ begin
         array_to_string(v_sets, ', ')
       ) using p_core, v_id;
       if not found then
-        raise exception 'Employee not found' using errcode = 'P0002';
+        raise exception 'Employee not found' using errcode = 'P0002', hint = 'user';
       end if;
     end if;
   end if;
@@ -383,7 +383,7 @@ language plpgsql security definer set search_path = public as $$
 declare v_emp uuid := public.current_employee_id();
 begin
   if v_emp is null then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   insert into public.employee_private (employee_id, personal_email, mobile_no)
   values (v_emp, nullif(btrim(p_personal_email), ''), nullif(btrim(p_mobile_no), ''))
@@ -397,4 +397,25 @@ language sql security definer set search_path = public as $$
   update public.profiles
   set privacy_acknowledged_at = now(), privacy_notice_version = p_version
   where user_id = auth.uid();
+$$;
+
+-- One round trip for "who am I and what may I do" (used on every request by the app).
+create function public.my_access() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select coalesce((
+    select jsonb_build_object(
+      'user_id', pr.user_id,
+      'display_name', pr.display_name,
+      'employee_id', pr.employee_id,
+      'privacy_acknowledged_at', pr.privacy_acknowledged_at,
+      'privacy_notice_version', pr.privacy_notice_version,
+      'current_privacy_version', public.setting_text('privacy.notice_version', '1'),
+      'roles', coalesce((select jsonb_agg(distinct r.code)
+                         from public.user_roles ur join public.roles r on r.id = ur.role_id
+                         where ur.user_id = pr.user_id), '[]'::jsonb),
+      'permissions', coalesce((select jsonb_agg(distinct rp.permission_code)
+                               from public.user_roles ur join public.role_permissions rp on rp.role_id = ur.role_id
+                               where ur.user_id = pr.user_id), '[]'::jsonb))
+    from public.profiles pr where pr.user_id = auth.uid() and pr.is_active
+  ), 'null'::jsonb)
 $$;

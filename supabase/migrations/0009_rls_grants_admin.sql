@@ -42,7 +42,7 @@ grant usage, select on all sequences in schema public to authenticated;
 -- Functions callable by signed-in users (policies, views and the RPC surface).
 -- Everything not listed here (notify, next_number, wf_log, ...) is internal.
 grant execute on function
-  public.has_permission(text), public.has_role(text), public.current_employee_id(), public.is_self(uuid),
+  public.my_access(), public.has_permission(text), public.has_role(text), public.current_employee_id(), public.is_self(uuid),
   public.supervises(uuid), public.can_read_employee(uuid), public.can_read_document(uuid),
   public.can_upload_document_for(uuid), public.can_read_request(text, uuid),
   public.wf_can_act(public.workflow_steps, uuid), public.working_days(date, date),
@@ -238,7 +238,7 @@ create function public.assignable_staff() returns table (user_id uuid, display_n
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not public.has_permission('request.process') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   return query
     select p.user_id, p.display_name from public.profiles p
@@ -260,26 +260,26 @@ declare
   v_ids uuid[];
 begin
   if not public.has_permission('admin.users') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if p_user = auth.uid() then
-    raise exception 'You cannot change your own roles' using errcode = '42501';
+    raise exception 'You cannot change your own roles' using errcode = '42501', hint = 'user';
   end if;
   select array_agg(id) into v_ids from public.roles where code = any (p_role_codes);
   if coalesce(array_length(v_ids, 1), 0) <> coalesce(array_length(p_role_codes, 1), 0) then
-    raise exception 'Unknown role' using errcode = '22023';
+    raise exception 'Unknown role' using errcode = '22023', hint = 'user';
   end if;
   if not v_super and (
        'SUPER_ADMIN' = any (p_role_codes)
        or exists (select 1 from public.user_roles ur join public.roles r on r.id = ur.role_id
                   where ur.user_id = p_user and r.code = 'SUPER_ADMIN')) then
-    raise exception 'Only a super administrator may change super administrator access' using errcode = '42501';
+    raise exception 'Only a super administrator may change super administrator access' using errcode = '42501', hint = 'user';
   end if;
   if not ('SUPER_ADMIN' = any (p_role_codes))
      and exists (select 1 from public.user_roles ur join public.roles r on r.id = ur.role_id
                  where ur.user_id = p_user and r.code = 'SUPER_ADMIN')
      and public.admin_remaining_super_admins(p_user) = 0 then
-    raise exception 'At least one active super administrator is required' using errcode = '22023';
+    raise exception 'At least one active super administrator is required' using errcode = '22023', hint = 'user';
   end if;
   delete from public.user_roles where user_id = p_user and role_id <> all (coalesce(v_ids, '{}'));
   insert into public.user_roles (user_id, role_id)
@@ -293,10 +293,10 @@ create function public.admin_provision_user(
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.has_permission('admin.users') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if not exists (select 1 from auth.users where id = p_user_id) then
-    raise exception 'Authentication account does not exist' using errcode = '22023';
+    raise exception 'Authentication account does not exist' using errcode = '22023', hint = 'user';
   end if;
   insert into public.profiles (user_id, display_name, employee_id)
   values (p_user_id, p_display_name, p_employee_id)
@@ -311,15 +311,15 @@ create function public.admin_set_user_active(p_user uuid, p_active boolean) retu
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.has_permission('admin.users') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if p_user = auth.uid() and not p_active then
-    raise exception 'You cannot deactivate your own account' using errcode = '42501';
+    raise exception 'You cannot deactivate your own account' using errcode = '42501', hint = 'user';
   end if;
   if not p_active and exists (select 1 from public.user_roles ur join public.roles r on r.id = ur.role_id
                               where ur.user_id = p_user and r.code = 'SUPER_ADMIN')
      and public.admin_remaining_super_admins(p_user) = 0 then
-    raise exception 'At least one active super administrator is required' using errcode = '22023';
+    raise exception 'At least one active super administrator is required' using errcode = '22023', hint = 'user';
   end if;
   update public.profiles set is_active = p_active where user_id = p_user;
 end $$;
@@ -336,29 +336,29 @@ declare
   v_perm text;
 begin
   if not public.has_permission('admin.roles') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if v_id is not null then
     select * into r from public.roles where id = v_id;
     if not found then
-      raise exception 'Role not found' using errcode = 'P0002';
+      raise exception 'Role not found' using errcode = 'P0002', hint = 'user';
     end if;
     if r.code = 'SUPER_ADMIN' then
-      raise exception 'The super administrator role cannot be edited' using errcode = '42501';
+      raise exception 'The super administrator role cannot be edited' using errcode = '42501', hint = 'user';
     end if;
     update public.roles set name = p_name, description = p_description where id = v_id;
   else
     if p_code !~ '^[A-Z][A-Z0-9_]{2,40}$' or p_code = 'SUPER_ADMIN' then
-      raise exception 'Invalid role code' using errcode = '22023';
+      raise exception 'Invalid role code' using errcode = '22023', hint = 'user';
     end if;
     insert into public.roles (code, name, description) values (p_code, p_name, p_description) returning id into v_id;
   end if;
   foreach v_perm in array coalesce(p_permission_codes, '{}') loop
     if not exists (select 1 from public.permissions where code = v_perm) then
-      raise exception 'Unknown permission %', v_perm using errcode = '22023';
+      raise exception 'Unknown permission %', v_perm using errcode = '22023', hint = 'user';
     end if;
     if not public.has_permission(v_perm) then
-      raise exception 'You cannot grant a permission you do not hold' using errcode = '42501';
+      raise exception 'You cannot grant a permission you do not hold' using errcode = '42501', hint = 'user';
     end if;
   end loop;
   delete from public.role_permissions where role_id = v_id and permission_code <> all (coalesce(p_permission_codes, '{}'));

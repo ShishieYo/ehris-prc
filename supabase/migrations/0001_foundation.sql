@@ -66,7 +66,7 @@ begin
     return new;
   end if;
   if new.parent_id = new.id then
-    raise exception 'An organizational unit cannot be its own parent' using errcode = '23514';
+    raise exception 'An organizational unit cannot be its own parent' using errcode = '23514', hint = 'user';
   end if;
   if exists (
     with recursive up as (
@@ -76,7 +76,7 @@ begin
     )
     select 1 from up where id = new.id
   ) then
-    raise exception 'Organizational unit hierarchy cannot contain a cycle' using errcode = '23514';
+    raise exception 'Organizational unit hierarchy cannot contain a cycle' using errcode = '23514', hint = 'user';
   end if;
   return new;
 end $$;

@@ -52,7 +52,7 @@ create index workflow_actions_entity_idx on public.workflow_actions(entity_type,
 create function public.workflow_actions_immutable() returns trigger
 language plpgsql as $$
 begin
-  raise exception 'Request history is immutable' using errcode = '42501';
+  raise exception 'Request history is immutable' using errcode = '42501', hint = 'user';
 end $$;
 create trigger workflow_actions_no_change before update or delete on public.workflow_actions
   for each row execute function public.workflow_actions_immutable();
@@ -339,14 +339,14 @@ begin
     select * into l from public.leave_applications where id = p_id;
     select * into lt from public.leave_types where code = l.leave_type_code and is_active;
     if lt.code is null then
-      raise exception 'This leave type is not available' using errcode = '22023';
+      raise exception 'This leave type is not available' using errcode = '22023', hint = 'user';
     end if;
     if exists (
       select 1 from public.leave_applications o
       where o.employee_id = l.employee_id and o.id <> l.id and o.status in ('in_review', 'approved')
         and daterange(o.date_from, o.date_to, '[]') && daterange(l.date_from, l.date_to, '[]')
     ) then
-      raise exception 'You already have a leave application covering these dates' using errcode = '23P01';
+      raise exception 'You already have a leave application covering these dates' using errcode = '23P01', hint = 'user';
     end if;
     if lt.requires_balance then
       select coalesce(b.beginning + b.earned - b.used, 0)
@@ -360,33 +360,33 @@ begin
         on b.employee_id = l.employee_id and b.leave_type_code = l.leave_type_code
        and b.year = extract(year from l.date_from)::int;
       if l.days > v_available then
-        raise exception 'Insufficient leave balance for this application' using errcode = '22023';
+        raise exception 'Insufficient leave balance for this application' using errcode = '22023', hint = 'user';
       end if;
     end if;
   elsif p_type = 'attendance_correction' then
     select * into c from public.attendance_corrections where id = p_id;
     if coalesce(btrim(c.reason), '') = '' then
-      raise exception 'A reason is required' using errcode = '22023';
+      raise exception 'A reason is required' using errcode = '22023', hint = 'user';
     end if;
     if c.work_date > (now() at time zone 'Asia/Manila')::date then
-      raise exception 'The date cannot be in the future' using errcode = '22023';
+      raise exception 'The date cannot be in the future' using errcode = '22023', hint = 'user';
     end if;
     if c.correction_type = 'missing_time_in' and c.proposed_time_in is null
        or c.correction_type = 'missing_time_out' and c.proposed_time_out is null
        or c.correction_type = 'incorrect_time' and c.proposed_time_in is null and c.proposed_time_out is null then
-      raise exception 'Provide the corrected time' using errcode = '22023';
+      raise exception 'Provide the corrected time' using errcode = '22023', hint = 'user';
     end if;
   elsif p_type = 'hr_request' then
     select * into h from public.hr_requests where id = p_id;
     select * into ht from public.hr_request_types where code = h.request_type_code and is_active;
     if ht.code is null then
-      raise exception 'This request type is not available' using errcode = '22023';
+      raise exception 'This request type is not available' using errcode = '22023', hint = 'user';
     end if;
     if ht.requires_attachment and not exists (
       select 1 from public.documents d
       where d.related_entity_type = 'hr_request' and d.related_entity_id = p_id and d.deleted_at is null
     ) then
-      raise exception 'A supporting document is required for this request type' using errcode = '22023';
+      raise exception 'A supporting document is required for this request type' using errcode = '22023', hint = 'user';
     end if;
   end if;
 end $$;
@@ -401,21 +401,21 @@ declare
   v_first public.workflow_steps;
 begin
   if public.wf_table(p_type) is null then
-    raise exception 'Unknown request type' using errcode = '22023';
+    raise exception 'Unknown request type' using errcode = '22023', hint = 'user';
   end if;
   execute format('select id, employee_id, status, workflow_code, request_no from public.%I where id = $1 for update',
                  public.wf_table(p_type)) into r using p_id;
   if r.id is null or not public.is_self(r.employee_id) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   if r.status <> 'draft' then
-    raise exception 'Only a draft can be submitted' using errcode = '22023';
+    raise exception 'Only a draft can be submitted' using errcode = '22023', hint = 'user';
   end if;
   perform public.wf_validate_submit(p_type, p_id);
 
   select * into v_first from public.workflow_steps where workflow_code = r.workflow_code order by step_order limit 1;
   if v_first.id is null then
-    raise exception 'No workflow is configured for this request' using errcode = 'P0001';
+    raise exception 'No workflow is configured for this request' using errcode = 'P0001', hint = 'user';
   end if;
 
   execute format('update public.%I set status = ''in_review'', current_step_order = $2, submitted_at = now() where id = $1',
@@ -439,16 +439,16 @@ declare
   v_requester uuid;
 begin
   if public.wf_table(p_type) is null then
-    raise exception 'Unknown request type' using errcode = '22023';
+    raise exception 'Unknown request type' using errcode = '22023', hint = 'user';
   end if;
   if p_action not in ('approve', 'reject', 'return', 'cancel') then
-    raise exception 'Unknown action' using errcode = '22023';
+    raise exception 'Unknown action' using errcode = '22023', hint = 'user';
   end if;
   execute format('select id, employee_id, status, workflow_code, current_step_order, request_no, %s as type_code from public.%I where id = $1 for update',
                  case p_type when 'hr_request' then 'request_type_code' else 'null::text' end,
                  public.wf_table(p_type)) into r using p_id;
   if r.id is null then
-    raise exception 'Request not found' using errcode = 'P0002';
+    raise exception 'Request not found' using errcode = 'P0002', hint = 'user';
   end if;
   select user_id into v_requester from public.profiles where employee_id = r.employee_id;
 
@@ -457,10 +457,10 @@ begin
     -- cancelling it would leave balances and records inconsistent.
     if r.status not in ('draft', 'in_review', 'approved')
        or (r.status = 'approved' and r.current_step_order is null) then
-      raise exception 'This request can no longer be cancelled' using errcode = '22023';
+      raise exception 'This request can no longer be cancelled' using errcode = '22023', hint = 'user';
     end if;
     if not (public.is_self(r.employee_id) or public.has_permission('workflow.override')) then
-      raise exception 'Not authorized' using errcode = '42501';
+      raise exception 'Not authorized' using errcode = '42501', hint = 'user';
     end if;
     select * into v_step from public.workflow_steps where workflow_code = r.workflow_code and step_order = r.current_step_order;
     execute format('update public.%I set status = ''cancelled'', current_step_order = null, completed_at = now() where id = $1',
@@ -474,14 +474,14 @@ begin
   end if;
 
   if r.status not in ('in_review', 'approved') or r.current_step_order is null then
-    raise exception 'This request is not awaiting action' using errcode = '22023';
+    raise exception 'This request is not awaiting action' using errcode = '22023', hint = 'user';
   end if;
   select * into v_step from public.workflow_steps where workflow_code = r.workflow_code and step_order = r.current_step_order;
   if not public.wf_can_act(v_step, r.employee_id) then
-    raise exception 'Not authorized to act on this step' using errcode = '42501';
+    raise exception 'Not authorized to act on this step' using errcode = '42501', hint = 'user';
   end if;
   if p_action in ('reject', 'return') and coalesce(btrim(p_remarks), '') = '' then
-    raise exception 'Remarks are required' using errcode = '22023';
+    raise exception 'Remarks are required' using errcode = '22023', hint = 'user';
   end if;
 
   if p_action = 'reject' then
@@ -516,7 +516,7 @@ begin
     select * into ht from public.hr_request_types where code = r.type_code;
     if ht.produces_document and not exists (
       select 1 from public.hr_requests where id = p_id and result_document_id is not null) then
-      raise exception 'Attach the generated document before releasing this request' using errcode = '22023';
+      raise exception 'Attach the generated document before releasing this request' using errcode = '22023', hint = 'user';
     end if;
   end if;
 
@@ -552,10 +552,10 @@ declare
   v_requester uuid;
 begin
   if coalesce(btrim(p_remarks), '') = '' then
-    raise exception 'Comment is empty' using errcode = '22023';
+    raise exception 'Comment is empty' using errcode = '22023', hint = 'user';
   end if;
   if not public.can_read_request(p_type, p_id) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   v_emp := public.wf_employee_of(p_type, p_id);
   execute format('select request_no from public.%I where id = $1', public.wf_table(p_type)) into v_no using p_id;
@@ -572,14 +572,14 @@ language plpgsql security definer set search_path = public as $$
 declare h public.hr_requests;
 begin
   if not public.has_permission('request.process') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   select * into h from public.hr_requests where id = p_request and status in ('in_review', 'approved') for update;
   if not found then
-    raise exception 'Request is not open' using errcode = '22023';
+    raise exception 'Request is not open' using errcode = '22023', hint = 'user';
   end if;
   if not exists (select 1 from public.users_with_permission('request.process') u where u = p_user) then
-    raise exception 'The assignee cannot process requests' using errcode = '22023';
+    raise exception 'The assignee cannot process requests' using errcode = '22023', hint = 'user';
   end if;
   update public.hr_requests set assigned_to = p_user where id = p_request;
   perform public.wf_log('hr_request', p_request, h.current_step_order, null, 'assigned',
@@ -594,12 +594,12 @@ language plpgsql security definer set search_path = public as $$
 declare h public.hr_requests; d public.documents;
 begin
   if not public.has_permission('request.process') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   select * into h from public.hr_requests where id = p_request and status in ('in_review', 'approved') for update;
   select * into d from public.documents where id = p_document and deleted_at is null;
   if h.id is null or d.id is null or d.employee_id <> h.employee_id then
-    raise exception 'Document does not belong to this requester' using errcode = '22023';
+    raise exception 'Document does not belong to this requester' using errcode = '22023', hint = 'user';
   end if;
   update public.hr_requests set result_document_id = p_document where id = p_request;
   perform public.wf_log('hr_request', p_request, h.current_step_order, null, 'document_attached', d.title, h.status, h.status);
@@ -664,7 +664,7 @@ begin
     select code into v_code from public.workflows where entity_type = v_type and is_default and is_active;
   end if;
   if v_code is null then
-    raise exception 'No workflow is configured for this request' using errcode = 'P0001';
+    raise exception 'No workflow is configured for this request' using errcode = 'P0001', hint = 'user';
   end if;
   new.workflow_code := v_code;
   new.status := 'draft';
@@ -691,7 +691,7 @@ begin
   if current_user in ('authenticated', 'anon') then
     foreach k in array c_protected loop
       if (to_jsonb(new) -> k) is distinct from (to_jsonb(old) -> k) then
-        raise exception 'This field is managed by the workflow' using errcode = '42501';
+        raise exception 'This field is managed by the workflow' using errcode = '42501', hint = 'user';
       end if;
     end loop;
   end if;
@@ -712,7 +712,7 @@ begin
     new.days := public.working_days(new.date_from, new.date_to);
   end if;
   if new.days <= 0 or new.days > (new.date_to - new.date_from + 1) then
-    raise exception 'Invalid number of leave days' using errcode = '22023';
+    raise exception 'Invalid number of leave days' using errcode = '22023', hint = 'user';
   end if;
   return new;
 end $$;

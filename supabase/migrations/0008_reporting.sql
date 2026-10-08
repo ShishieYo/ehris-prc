@@ -17,7 +17,7 @@ declare
   v_done int;
 begin
   if not public.can_read_employee(p_employee) then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   select * into e from public.employees where id = p_employee;
   select * into pr from public.employee_private where employee_id = p_employee;
@@ -81,7 +81,7 @@ declare
   v jsonb;
 begin
   if not public.has_permission('dashboard.hr') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   select jsonb_build_object(
     'total', (select count(*) from public.employees where record_status = 'active'),
@@ -122,7 +122,7 @@ declare
   v jsonb;
 begin
   if not public.has_permission('dashboard.executive') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   select jsonb_build_object(
     'total', (select count(*) from public.employees where record_status = 'active'),
@@ -173,7 +173,7 @@ returns table (check_code text, severity text, employee_id uuid, employee_no tex
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not public.has_permission('dq.read') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   return query
   with emp as (
@@ -246,7 +246,7 @@ create function public.assert_report_access() returns void
 language plpgsql stable security definer set search_path = public as $$
 begin
   if not public.has_permission('report.view') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
 end $$;
 
@@ -361,7 +361,7 @@ language plpgsql stable security definer set search_path = public as $$
 begin
   perform public.assert_report_access();
   if not public.has_permission('pds.read_all') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   return query
   select d.employee_no, d.full_name, d.division_name, (count(t.id))::int, coalesce(sum(t.hours), 0)

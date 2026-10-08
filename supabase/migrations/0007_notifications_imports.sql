@@ -102,11 +102,11 @@ declare
   v_fail int := 0;
 begin
   if not public.has_permission('import.run') then
-    raise exception 'Not authorized' using errcode = '42501';
+    raise exception 'Not authorized' using errcode = '42501', hint = 'user';
   end if;
   select * into b from public.import_batches where id = p_batch for update;
   if not found or b.status <> 'validated' then
-    raise exception 'This import can no longer be committed' using errcode = '22023';
+    raise exception 'This import can no longer be committed' using errcode = '22023', hint = 'user';
   end if;
   perform set_config('app.change_reason', 'Imported from batch ' || p_batch, true);
 
