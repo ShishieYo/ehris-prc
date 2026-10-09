@@ -5,6 +5,12 @@ a scheduler for the notification job. Any host that runs Node works (Vercel, a
 container platform, a VM). Choose a hosting region and a Supabase region that
 satisfy the agency's data-location requirements (see `security.md` §9).
 
+Planned path: **testing and pilot on a hosted Supabase project** (§1–§7, fictional
+data only), then **production on PRC's own server** with self-hosted Supabase
+(§8). The application is identical in both; only the environment variables and
+the operations change. Hosted free plans pause after inactivity and have no
+backups, so do not put real personnel data on one.
+
 ## 1. Supabase project
 
 1. Create a project (production and, separately, staging). Keep the database
@@ -126,3 +132,113 @@ refuses to run twice; the account script refuses to run unless `DEMO_MODE=true`.
 * **Restore drill**: quarterly (see `architecture.md` §14).
 * **Retention**: define and automate per the agency's records schedule; the
   application never purges documents or audit records.
+
+## 8. Self-hosting on the agency's server
+
+> **Status: documented, not yet tested.** The application has been verified
+> against local PostgreSQL/PostgREST and a test-only gateway, not against a
+> self-hosted Supabase stack. Treat the first deployment as a rehearsal: complete
+> §8.7 on a test server with fictional data before any real record is loaded.
+> Commands follow Supabase's own self-hosting guide, which changes between
+> releases; where this section and that guide disagree, the guide wins.
+
+Reference: https://supabase.com/docs/guides/self-hosting/docker
+
+### 8.1 What PRC IT takes over
+
+Hosted Supabase does these for you; self-hosted means PRC IT does them:
+patching (OS, Docker images, PostgreSQL), backups and restore drills, TLS
+certificates, monitoring, mail relay, key rotation, capacity and availability.
+Agree who owns each before go-live.
+
+### 8.2 Server requirements (starting estimates, not measured)
+
+| Item | Suggestion |
+|---|---|
+| OS | Linux with Docker Engine + Compose plugin |
+| Size | 4 vCPU, 8–16 GB RAM, SSD; disk for the database plus all documents with growth room |
+| Network | Public/intranet HTTPS (443) only; PostgreSQL and the Supabase service ports **not** exposed outside the host/private network |
+| DNS + TLS | One hostname for the app (e.g. `ehris.example`) and one for the API gateway (e.g. `api.ehris.example`), valid certificates |
+| Mail | An SMTP relay for invitations and password resets |
+| Time | NTP-synchronised clock (audit timestamps depend on it) |
+
+One host may run everything; for availability, put the database on its own
+machine or add a standby.
+
+### 8.3 Install the Supabase stack
+
+```bash
+git clone --depth 1 https://github.com/supabase/supabase
+mkdir ehris-supabase && cp -r supabase/docker/* ehris-supabase/ && cp supabase/docker/.env.example ehris-supabase/.env
+cd ehris-supabase
+```
+
+Edit `.env` — **replace every placeholder secret**; none of the example values is
+safe:
+
+* `POSTGRES_PASSWORD`, `JWT_SECRET` (≥ 32 random characters), `DASHBOARD_USERNAME`/`DASHBOARD_PASSWORD`;
+* `ANON_KEY` and `SERVICE_ROLE_KEY`: JWTs signed with your `JWT_SECRET` (the guide
+  shows how to generate them; the `role` claim must be `anon` / `service_role`);
+* `SITE_URL` = the app URL; `API_EXTERNAL_URL` / `SUPABASE_PUBLIC_URL` = the API gateway URL;
+* `ADDITIONAL_REDIRECT_URLS` = `https://<app-host>/auth/callback`;
+* `ENABLE_EMAIL_SIGNUP=true` is required for email login but keep
+  `DISABLE_SIGNUP=true` (invitation only); `ENABLE_ANONYMOUS_USERS=false`;
+* `SMTP_*` = the agency relay; `GOTRUE_PASSWORD_MIN_LENGTH` equivalent / password rules as in §1.4 where the stack exposes them;
+* storage: the default file backend stores objects in a Docker volume — put that
+  volume on the large, backed-up disk (or configure the S3-compatible backend).
+
+Then `docker compose pull && docker compose up -d` and check `docker compose ps`
+until all services are healthy.
+
+Put a reverse proxy (nginx, Caddy) in front: terminate TLS for both hostnames,
+forward the API hostname to the Kong gateway (default port 8000) and the app
+hostname to the Next.js server. Do **not** publish the Studio dashboard, Postgres
+or other service ports to the internet; reach Studio through VPN/SSH tunnel only.
+
+### 8.4 Apply the schema
+
+Run the migrations in order from a machine that can reach the database (inside
+the Compose network is simplest):
+
+```bash
+for f in supabase/migrations/*.sql; do
+  docker compose exec -T db psql -U postgres -d postgres -v ON_ERROR_STOP=1 < "$f"
+done
+```
+
+Create the first Super Administrator exactly as in §1.3 (invite via Studio →
+Authentication, then run `supabase/bootstrap_admin.sql` the same way). Confirm the
+`personnel-documents` bucket exists and is not public.
+
+### 8.5 Run the application
+
+Same variables as §2, pointing at the self-hosted stack:
+`SUPABASE_URL=https://api.ehris.example`, `SUPABASE_ANON_KEY`,
+`SUPABASE_SERVICE_ROLE_KEY` from §8.3, `APP_URL=https://ehris.example`.
+Run `npm ci && npm run build` and keep `npm start` alive under systemd or a
+container with automatic restart. Self-hosting avoids the Vercel upload-size
+limit noted in §2. The notification job (§3) is a cron entry on the same host.
+
+### 8.6 Backups, patching, monitoring
+
+* **Database**: nightly `pg_dump` (custom format) plus WAL archiving if point-in-time
+  recovery is required; encrypt and copy **off the server**.
+  ```bash
+  docker compose exec -T db pg_dump -U postgres -Fc postgres > ehris-$(date +%F).dump
+  ```
+* **Files**: the storage volume is *not* in the database dump — back it up separately (rsync/restic to agency storage).
+* **Audit trail**: also export periodically (Audit Logs → CSV) to write-once storage.
+* **Restore drill** at least quarterly into a scratch environment, then run the checks in §8.7.
+* **Patching**: track Supabase release notes; pull new images in a test environment first; apply OS updates on a schedule.
+* **Monitoring**: disk space (documents grow), container health, certificate expiry, failed-login spikes, application error lines (§7).
+* **Secrets**: keep `.env` readable only by the service account, outside the repository; rotating `JWT_SECRET` invalidates all sessions and requires regenerating `ANON_KEY`/`SERVICE_ROLE_KEY`.
+
+### 8.7 Acceptance on the self-hosted stack
+
+Before real data, with fictional data (§6) on the test server:
+
+1. Run all of §5 (cross-employee API and storage attacks, anon rejected, private bucket, folder isolation).
+2. Run the acceptance scenario by hand: employee files leave → supervisor approves → HR processes → employee sees Approved → audit trail shows each step → another employee cannot open the first one's records or files.
+3. Restore last night's backup into a scratch instance and sign in.
+4. Confirm the database and Studio ports are unreachable from outside the server network.
+5. Record the results; the DPO and agency IT sign off before go-live.
